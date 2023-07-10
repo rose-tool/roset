@@ -9,6 +9,7 @@ from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 
 from .action_3 import Action3
+from .action_4 import Action4
 from ..foundation.actions.action import Action
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..foundation.exceptions import BgpRuntimeError
@@ -20,7 +21,7 @@ CONVERGENCE_ATTEMPTS = 100
 class ActionManager:
     __slots__ = ['_actions']
 
-    DEFAULT_ACTIONS = [Action3()]
+    DEFAULT_ACTIONS = [Action3(), Action4()]
 
     def __init__(self, exclude: list | None = None):
         if exclude is None:

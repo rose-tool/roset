@@ -25,7 +25,7 @@ class Action3(Action):
     def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> (bool, str):
         candidate = topology.get(config.get_local_as())
         candidate_client_name = f"as{candidate.identifier}_client"
-        _, candidate_client_iface_idx = candidate.get_neighbour_by_name(candidate_client_name)
+        _, candidate_client_iface_idx = candidate.get_node_by_name(candidate_client_name)
         candidate_device = net_scenario.get_machine(candidate.name)
         candidate_client = net_scenario.get_machine(candidate_client_name)
         candidate_assigned_ips = set(
@@ -76,7 +76,7 @@ class Action3(Action):
             logging.info(f"Setting IPv{v} addresses on AS{INTERNET_AS_NUM} (Internet)...")
             internet_router = topology.get(INTERNET_AS_NUM)
             internet_router_client_name = f"as{INTERNET_AS_NUM}_client"
-            _, internet_router_client_iface_idx = internet_router.get_neighbour_by_name(internet_router_client_name)
+            _, internet_router_client_iface_idx = internet_router.get_node_by_name(internet_router_client_name)
             internet_router_device = net_scenario.get_machine(internet_router.name)
             internet_router_ip = ipaddress.ip_interface(f"{next(spoofing_hosts)}/{spoofing_net.prefixlen}")
             self._ip_addr_add(internet_router_device, internet_router_client_iface_idx, internet_router_ip)
@@ -101,7 +101,7 @@ class Action3(Action):
                 provider_net_hosts = provider_net.hosts()
 
                 provider_client_name = f"as{provider.identifier}_client"
-                _, provider_client_iface_idx = provider.get_neighbour_by_name(provider_client_name)
+                _, provider_client_iface_idx = provider.get_node_by_name(provider_client_name)
                 provider_device = net_scenario.get_machine(provider.name)
                 provider_ip = ipaddress.ip_interface(f"{next(provider_net_hosts)}/{provider_net.prefixlen}")
                 self._ip_addr_add(provider_device, provider_client_iface_idx, provider_ip)
@@ -113,7 +113,7 @@ class Action3(Action):
                 self._ip_addr_add(provider_client, 0, provider_client_ip)
                 self._ip_route_add(provider_client, default_net, provider_ip.ip, 0)
 
-                _, candidate_iface_idx = provider.get_neighbour_by_name(candidate.name)
+                _, candidate_iface_idx = provider.get_node_by_name(candidate.name)
                 # We can surely pop since there is only one public IP towards the candidate router
                 (cand_peering_ip, _) = provider.neighbours[candidate_iface_idx].get_ips(is_public=True)[v].pop()
 
@@ -148,7 +148,7 @@ class Action3(Action):
                                                       candidate_client_ip.ip, spoofed_src_ip, provider_client_addr)
                 passed_checks.append(result)
                 if result:
-                    logging.info(f"Check passed on IPv{v} with provider AS{provider.identifier}!")
+                    logging.success(f"Check passed on IPv{v} with provider AS{provider.identifier}!")
                 else:
                     logging.warning(f"Check not passed on IPv{v} with provider AS{provider.identifier}!")
 

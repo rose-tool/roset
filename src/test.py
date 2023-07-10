@@ -4,11 +4,11 @@ import os
 import subprocess
 import sys
 
-import coloredlogs
 from Kathara.setting.Setting import Setting
 
 from rs4lk.actions.action_manager import ActionManager
 from rs4lk.batfish.batfish_configuration import BatfishConfiguration
+from rs4lk.colored_logging import set_logging
 from rs4lk.configuration.bgp_configuration import BgpConfiguration
 from rs4lk.configuration.vendor_configuration_factory import VendorConfigurationFactory
 from rs4lk.globals import DEFAULT_RIB, DEFAULT_BATFISH_URL
@@ -55,7 +55,7 @@ def main(args):
     logging.info("Deploying network scenario...")
     net_scenario_manager.start_candidate_device(net_scenario, vendor_config)
     net_scenario_manager.start_other_devices(net_scenario, vendor_config)
-    logging.info("Network scenario deployed successfully.")
+    logging.success("Network scenario deployed successfully.")
 
     # for machine in net_scenario.machines.values():
     #     connect(machine)
@@ -63,7 +63,7 @@ def main(args):
     action_manager = ActionManager(exclude=args.exclude_checks.split(','))
     result = action_manager.start(vendor_config, topology, net_scenario)
     if result:
-        logging.info(f"Configuration file `{args.config_path}` is MANRS compliant!")
+        logging.success(f"Configuration file `{args.config_path}` is MANRS compliant!")
     else:
         logging.error(f"Configuration file `{args.config_path}` is not MANRS compliant!")
 
@@ -73,6 +73,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    coloredlogs.install(fmt='%(levelname)s - %(message)s', level="INFO")
+    set_logging()
 
     main(parse_args())
