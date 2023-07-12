@@ -71,6 +71,9 @@ def main(args):
 
     net_scenario_manager.undeploy(net_scenario)
 
+    # 0=Configuration is compliant, 1=Configuration is not compliant
+    exit(int(result))
+
 
 if __name__ == "__main__":
     set_logging()

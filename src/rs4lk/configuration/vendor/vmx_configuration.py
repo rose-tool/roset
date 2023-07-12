@@ -249,6 +249,9 @@ class VmxConfiguration(VendorConfiguration):
     def command_get_bgp_summary(self) -> str:
         return "show bgp summary"
 
+    def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+        return f"show route receive-protocol bgp {str(neighbour_ip)} all | display json"
+
     def command_set_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
         unit_name = VmxConfiguration._build_iface_name("ge", 0, 0, num, 0)
         inet_str = "inet" if ip.version == 4 else "inet6"

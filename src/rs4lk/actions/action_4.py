@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import json
 import logging
 import shlex
 import time
@@ -19,6 +20,7 @@ from ..model.topology import Topology
 class Action4(Action):
     def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> (bool, str):
         candidate = topology.get(config.get_local_as())
+        candidate_device = net_scenario.get_machine(candidate.name)
 
         all_announced_networks = {4: set(), 6: set()}
         # Get all providers
@@ -73,16 +75,24 @@ class Action4(Action):
 
                 # Announce the spoofed network from the customer
                 self._vtysh_network(customer_device, customer.identifier, spoofing_net)
+                customer_neigh, _ = candidate.get_neighbour_by_name(customer.name)
+                # We can surely pop since there is only one public IP towards the customer router
+                (customer_peering_ip, _) = customer_neigh.get_ips(is_public=True)[v].pop()
 
-                logging.info("Waiting 20s before performing check...")
-                time.sleep(20)
+                while True:
+                    time.sleep(2)
+                    customer_cand_nets = self._vendor_get_neighbour_bgp_networks(candidate_device, config,
+                                                                                 customer_peering_ip.ip)
+                    if spoofing_net in customer_cand_nets:
+                        logging.info(f"Network {spoofing_net} received by candidate AS.")
+                        break
 
                 for _, provider in providers_routers:
                     provider_device = net_scenario.get_machine(provider.name)
 
-                    _, candidate_iface_idx = provider.get_node_by_name(candidate.name)
+                    candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
                     # We can surely pop since there is only one public IP towards the candidate router
-                    (cand_peering_ip, _) = provider.neighbours[candidate_iface_idx].get_ips(is_public=True)[v].pop()
+                    (cand_peering_ip, _) = candidate_neigh.get_ips(is_public=True)[v].pop()
                     candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)
 
                     result = spoofing_net not in candidate_nets
@@ -139,6 +149,35 @@ class Action4(Action):
             next(exec_output)
         except StopIteration:
             pass
+
+    @staticmethod
+    def _vendor_get_neighbour_bgp_networks(device: Machine, config: VendorConfiguration,
+                                           neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> set:
+        exec_output = Kathara.get_instance().exec(
+            machine_name=device.name,
+            command=shlex.split(config.command_get_neighbour_bgp_networks(neighbour_ip)),
+            lab_name=device.lab.name
+        )
+        output = ""
+        try:
+            while True:
+                (stdout, _) = next(exec_output)
+                stdout = stdout.decode('utf-8') if stdout else ""
+
+                if stdout:
+                    output += stdout
+        except StopIteration:
+            pass
+
+        # TODO: Pass to the configuration to parse the vendor format.
+        output = json.loads(output)
+        bgp_routes = set()
+        for route_table in output['route-information'][0]['route-table']:
+            if 'rt' in route_table:
+                for route_entry in route_table['rt']:
+                    bgp_routes.add(ipaddress.ip_network(route_entry['rt-destination'][0]['data']))
+
+        return bgp_routes
 
     def name(self) -> str:
         return "leak"

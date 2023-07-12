@@ -79,9 +79,10 @@ def get_neighbour_bgp_networks(device: Machine,
 
 def get_non_overlapping_network(v: int, networks: set) -> ipaddress.IPv4Network | ipaddress.IPv6Network:
     n_bytes = 4 if v == 4 else 16
-    # It is a good practice to reject routes below /24, so we start from /24
-    lower_prefixlen = 24 if v == 4 else 120
-    higher_prefixlen = 8 if v == 4 else 16
+    # For IPv4: It is a good practice to reject routes below /24
+    # For IPv6: It is a good practice to reject routes below /48
+    lower_prefixlen = 24 if v == 4 else 48
+    higher_prefixlen = 8 if v == 4 else 3
 
     while True:
         random_bytes = secrets.token_bytes(n_bytes) if v == 4 else b"\x20\x00" + secrets.token_bytes(n_bytes - 2)

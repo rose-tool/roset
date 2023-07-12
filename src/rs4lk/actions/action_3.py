@@ -113,9 +113,9 @@ class Action3(Action):
                 self._ip_addr_add(provider_client, 0, provider_client_ip)
                 self._ip_route_add(provider_client, default_net, provider_ip.ip, 0)
 
-                _, candidate_iface_idx = provider.get_node_by_name(candidate.name)
+                candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
                 # We can surely pop since there is only one public IP towards the candidate router
-                (cand_peering_ip, _) = provider.neighbours[candidate_iface_idx].get_ips(is_public=True)[v].pop()
+                (cand_peering_ip, _) = candidate_neigh.get_ips(is_public=True)[v].pop()
 
                 # Get the announced candidate networks towards this provider
                 candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)

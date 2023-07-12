@@ -10,6 +10,10 @@ class CommandsMixin(ABC):
         raise NotImplementedError("You must implement `command_get_bgp_summary` method.")
 
     @abstractmethod
+    def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+        raise NotImplementedError("You must implement `command_get_neighbour_bgp_networks` method.")
+
+    @abstractmethod
     def command_set_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
         raise NotImplementedError("You must implement `command_set_iface_ip` method.")
 
