@@ -3,7 +3,7 @@ import re
 
 
 class RipeDb:
-    RIPE_DB_URL_TEMPLATE = 'https://rest.db.ripe.net/search.txt?query-string=AS%d&flags=no-referenced&flags=no-irt&source=RIPE'
+    URL: str = 'https://rest.db.ripe.net/search.txt?query-string=AS%d&flags=no-referenced&flags=no-irt&source=RIPE'
     RPSL_REGEX = re.compile(r"^(?P<key>.*):\s+(?P<value>.*)$")
 
     def get_local_as_rules(self, as_num: int) -> (list[str], list[str]):

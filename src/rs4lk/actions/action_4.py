@@ -12,20 +12,27 @@ from Kathara.model.Machine import Machine
 from . import action_utils
 from .. import utils
 from ..foundation.actions.action import Action
+from ..foundation.actions.action_result import ActionResult
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..model.topology import Topology
 
 
 class Action4(Action):
-    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> (bool, str):
+    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> ActionResult:
+        action_result = ActionResult(self)
+
         candidate = topology.get(config.get_local_as())
+        candidate_device = net_scenario.get_machine(candidate.name)
 
         all_announced_networks = {4: set(), 6: set()}
         # Get all providers
         providers_routers = list(filter(lambda x: x[1].is_provider(), topology.all()))
         if len(providers_routers) == 0:
             logging.warning("No providers found, skipping check...")
-            return True
+
+            action_result.add_result(True, "No providers found, skipped.")
+
+            return action_result
 
         for _, provider in providers_routers:
             logging.info(f"Reading networks from provider AS{provider.identifier}...")
@@ -44,9 +51,11 @@ class Action4(Action):
         customer_routers = list(filter(lambda x: x[1].is_customer(), topology.all()))
         if len(customer_routers) == 0:
             logging.warning("No customers found, skipping check...")
-            return True
 
-        passed_checks = []
+            action_result.add_result(True, "No customers found, skipped.")
+
+            return action_result
+
         for v, networks in all_announced_networks.items():
             logging.info(f"Performing check on IPv{v}...")
 
@@ -73,28 +82,38 @@ class Action4(Action):
 
                 # Announce the spoofed network from the customer
                 self._vtysh_network(customer_device, customer.identifier, spoofing_net)
+                customer_neigh, _ = candidate.get_neighbour_by_name(customer.name)
+                # We can surely pop since there is only one public IP towards the customer router
+                (customer_peering_ip, _) = customer_neigh.get_ips(is_public=True)[v].pop()
 
-                logging.info("Waiting 20s before performing check...")
-                time.sleep(20)
+                while True:
+                    time.sleep(2)
+                    customer_cand_nets = self._vendor_get_neighbour_bgp_networks(candidate_device, config,
+                                                                                 customer_peering_ip.ip)
+                    if spoofing_net in customer_cand_nets:
+                        logging.info(f"Network {spoofing_net} received by candidate AS.")
+                        break
 
                 for _, provider in providers_routers:
                     provider_device = net_scenario.get_machine(provider.name)
 
-                    _, candidate_iface_idx = provider.get_node_by_name(candidate.name)
+                    candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
                     # We can surely pop since there is only one public IP towards the candidate router
-                    (cand_peering_ip, _) = provider.neighbours[candidate_iface_idx].get_ips(is_public=True)[v].pop()
+                    (cand_peering_ip, _) = candidate_neigh.get_ips(is_public=True)[v].pop()
                     candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)
 
                     result = spoofing_net not in candidate_nets
-                    passed_checks.append(result)
                     if result:
-                        logging.success(f"Check passed on IPv{v} with provider AS{provider.identifier}!")
+                        msg = f"Configuration correctly blocks announcements of the spoofed network {spoofing_net} " \
+                              f"of customer AS{customer.identifier} towards provider AS{provider.identifier}."
                     else:
-                        logging.warning(f"Check not passed on IPv{v} with provider AS{provider.identifier}!")
+                        msg = f"Configuration allows to announce the spoofed network {spoofing_net} of " \
+                              f"customer AS{customer.identifier} towards provider AS{provider.identifier}."
+                    action_result.add_result(result, msg)
 
                 self._no_vtysh_network(customer_device, customer.identifier, spoofing_net)
 
-        return all(passed_checks)
+        return action_result
 
     @staticmethod
     def _vtysh_network(device: Machine, as_num: int, net: ipaddress.IPv4Network | ipaddress.IPv6Network) -> None:
@@ -139,6 +158,27 @@ class Action4(Action):
             next(exec_output)
         except StopIteration:
             pass
+
+    @staticmethod
+    def _vendor_get_neighbour_bgp_networks(device: Machine, config: VendorConfiguration,
+                                           neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> set:
+        exec_output = Kathara.get_instance().exec(
+            machine_name=device.name,
+            command=shlex.split(config.command_get_neighbour_bgp_networks(neighbour_ip)),
+            lab_name=device.lab.name
+        )
+        output = ""
+        try:
+            while True:
+                (stdout, _) = next(exec_output)
+                stdout = stdout.decode('utf-8') if stdout else ""
+
+                if stdout:
+                    output += stdout
+        except StopIteration:
+            pass
+
+        return config.parse_bgp_routes(output)
 
     def name(self) -> str:
         return "leak"

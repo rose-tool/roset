@@ -132,4 +132,5 @@ dmypy.json
 
 resources/*.gz
 resources/*.db
+resources/bogons-*.txt
 snapshots/*.cfg

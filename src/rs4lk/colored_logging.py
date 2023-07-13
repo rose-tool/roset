@@ -7,7 +7,7 @@ import coloredlogs
 
 
 class Color:
-    colors = {
+    COLORS: dict = {
         'red': 31,
         'green': 32,
         'yellow': 33,
@@ -16,17 +16,15 @@ class Color:
         'bgred': 41,
         'bggrey': 100
     }
-
-    prefix = '\033['
-
-    suffix = '\033[0m'
+    PREFIX: str = '\033['
+    SUFFIX: str = '\033[0m'
 
     def colored(self, text: str, color: str | None = None) -> str:
-        if color not in self.colors:
+        if color not in self.COLORS:
             color = 'white'
 
-        clr = self.colors[color]
-        return (self.prefix + '%dm%s' + self.suffix) % (clr, text)
+        clr = self.COLORS[color]
+        return (self.PREFIX + '%dm%s' + self.SUFFIX) % (clr, text)
 
 
 colored = Color().colored

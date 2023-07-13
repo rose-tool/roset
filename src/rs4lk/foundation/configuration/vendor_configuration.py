@@ -5,16 +5,17 @@ from abc import ABC, abstractmethod
 
 from .commands_mixin import CommandsMixin
 from .configuration_applier import ConfigurationApplier
+from .vendor_format_parser import VendorFormatParser
 from ..exceptions import ConfigError
 from ...batfish.batfish_configuration import BatfishConfiguration
 from ...model.bgp_session import BgpSession
 
 
-class VendorConfiguration(ConfigurationApplier, CommandsMixin, ABC):
+class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParser, ABC):
     __slots__ = ['_batfish_config', '_lines', '_ripe_api']
 
     def __init__(self) -> None:
-        self._batfish_config: Optional[BatfishConfiguration] = None
+        self._batfish_config: BatfishConfiguration | None = None
         self._lines: list[str] | None = None
 
     @property
