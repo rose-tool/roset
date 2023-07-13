@@ -61,18 +61,22 @@ def main(args):
     #     connect(machine)
 
     action_manager = ActionManager(exclude=args.exclude_checks.split(','))
-    result = action_manager.start(vendor_config, topology, net_scenario)
-    if result:
+    results = action_manager.start(vendor_config, topology, net_scenario)
+    all_passed = all([x.passed() for x in results])
+    if all_passed:
         logging.success(f"Configuration file `{args.config_path}` is MANRS compliant!")
     else:
         logging.error(f"Configuration file `{args.config_path}` is not MANRS compliant!")
+
+    for result in results:
+        result.print()
 
     table_dump.close()
 
     net_scenario_manager.undeploy(net_scenario)
 
     # 0=Configuration is compliant, 1=Configuration is not compliant
-    exit(int(result))
+    exit(int(all_passed))
 
 
 if __name__ == "__main__":

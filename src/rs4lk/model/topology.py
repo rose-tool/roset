@@ -22,8 +22,8 @@ class Node:
     __slots__ = ['identifier', 'neighbours']
 
     def __init__(self, identifier: Any) -> None:
-        self.identifier = identifier
-        self.neighbours: SortedDict[int, 'marns.model.topology.Neighbour'] = SortedDict()
+        self.identifier: Any = identifier
+        self.neighbours: SortedDict[int, 'rs4lk.model.topology.Neighbour'] = SortedDict()
 
     @property
     def name(self) -> str:
@@ -42,7 +42,7 @@ class Node:
 
         return iface_idx if new_idx else None
 
-    def connect_to(self, neighbour: 'marns.model.topology.Node', iface_idx: int | None = None) -> int | None:
+    def connect_to(self, neighbour: 'rs4lk.model.topology.Node', iface_idx: int | None = None) -> int | None:
         new_idx = False
         if iface_idx is None:
             iface_idx = max(self.neighbours.keys()) + 1 if self.neighbours else 0
@@ -64,14 +64,14 @@ class Node:
 
         self.neighbours[iface_idx].add_local_ip(addr, is_public)
 
-    def get_node_by_name(self, name: str) -> ('marns.model.topology.Node', int):
+    def get_node_by_name(self, name: str) -> ('rs4lk.model.topology.Node', int):
         for iface_idx, neighbour in self.neighbours.items():
             if neighbour.neighbour and neighbour.neighbour.name == name:
                 return neighbour.neighbour, iface_idx
 
         return None, -1
 
-    def get_neighbour_by_name(self, name: str) -> ('marns.model.topology.Neighbour', int):
+    def get_neighbour_by_name(self, name: str) -> ('rs4lk.model.topology.Neighbour', int):
         for iface_idx, neighbour in self.neighbours.items():
             if neighbour.neighbour and neighbour.neighbour.name == name:
                 return neighbour, iface_idx

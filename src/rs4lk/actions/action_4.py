@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ipaddress
-import json
 import logging
 import shlex
 import time
@@ -13,12 +12,15 @@ from Kathara.model.Machine import Machine
 from . import action_utils
 from .. import utils
 from ..foundation.actions.action import Action
+from ..foundation.actions.action_result import ActionResult
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..model.topology import Topology
 
 
 class Action4(Action):
-    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> (bool, str):
+    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> ActionResult:
+        action_result = ActionResult(self)
+
         candidate = topology.get(config.get_local_as())
         candidate_device = net_scenario.get_machine(candidate.name)
 
@@ -27,7 +29,10 @@ class Action4(Action):
         providers_routers = list(filter(lambda x: x[1].is_provider(), topology.all()))
         if len(providers_routers) == 0:
             logging.warning("No providers found, skipping check...")
-            return True
+
+            action_result.add_result(True, "No providers found, skipped.")
+
+            return action_result
 
         for _, provider in providers_routers:
             logging.info(f"Reading networks from provider AS{provider.identifier}...")
@@ -46,9 +51,11 @@ class Action4(Action):
         customer_routers = list(filter(lambda x: x[1].is_customer(), topology.all()))
         if len(customer_routers) == 0:
             logging.warning("No customers found, skipping check...")
-            return True
 
-        passed_checks = []
+            action_result.add_result(True, "No customers found, skipped.")
+
+            return action_result
+
         for v, networks in all_announced_networks.items():
             logging.info(f"Performing check on IPv{v}...")
 
@@ -96,15 +103,17 @@ class Action4(Action):
                     candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)
 
                     result = spoofing_net not in candidate_nets
-                    passed_checks.append(result)
                     if result:
-                        logging.success(f"Check passed on IPv{v} with provider AS{provider.identifier}!")
+                        msg = f"Configuration correctly blocks announcements of the spoofed network {spoofing_net} " \
+                              f"of customer AS{customer.identifier} towards provider AS{provider.identifier}."
                     else:
-                        logging.warning(f"Check not passed on IPv{v} with provider AS{provider.identifier}!")
+                        msg = f"Configuration allows to announce the spoofed network {spoofing_net} of " \
+                              f"customer AS{customer.identifier} towards provider AS{provider.identifier}."
+                    action_result.add_result(result, msg)
 
                 self._no_vtysh_network(customer_device, customer.identifier, spoofing_net)
 
-        return all(passed_checks)
+        return action_result
 
     @staticmethod
     def _vtysh_network(device: Machine, as_num: int, net: ipaddress.IPv4Network | ipaddress.IPv6Network) -> None:
@@ -169,15 +178,7 @@ class Action4(Action):
         except StopIteration:
             pass
 
-        # TODO: Pass to the configuration to parse the vendor format.
-        output = json.loads(output)
-        bgp_routes = set()
-        for route_table in output['route-information'][0]['route-table']:
-            if 'rt' in route_table:
-                for route_entry in route_table['rt']:
-                    bgp_routes.add(ipaddress.ip_network(route_entry['rt-destination'][0]['data']))
-
-        return bgp_routes
+        return config.parse_bgp_routes(output)
 
     def name(self) -> str:
         return "leak"

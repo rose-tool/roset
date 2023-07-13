@@ -10,6 +10,8 @@ import shlex
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Machine import Machine
 
+from ..webhooks.cymru_bogons import CymruBogons
+
 
 def get_bgp_networks(device: Machine) -> dict[int, set]:
     device_networks = {4: set(), 6: set()}
@@ -77,6 +79,9 @@ def get_neighbour_bgp_networks(device: Machine,
     return {ipaddress.ip_network(net) for net in bgp_nets['routes'].keys()}
 
 
+bogons = CymruBogons()
+
+
 def get_non_overlapping_network(v: int, networks: set) -> ipaddress.IPv4Network | ipaddress.IPv6Network:
     n_bytes = 4 if v == 4 else 16
     # For IPv4: It is a good practice to reject routes below /24
@@ -98,6 +103,10 @@ def get_non_overlapping_network(v: int, networks: set) -> ipaddress.IPv4Network 
                 logging.warning(f"Network overlapping with {network}, regenerating...")
                 regenerate = True
                 break
+
+        if bogons.is_network_bogon(random_network):
+            logging.warning("Network is bogon, regenerating...")
+            regenerate = True
 
         # Check if any of the flags is active
         if not regenerate and random_network.is_multicast:

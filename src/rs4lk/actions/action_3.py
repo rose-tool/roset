@@ -16,13 +16,16 @@ from Kathara.model.Machine import Machine
 from . import action_utils
 from .. import utils
 from ..foundation.actions.action import Action
+from ..foundation.actions.action_result import ActionResult
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..globals import RESOURCES_FOLDER
 from ..model.topology import Topology, INTERNET_AS_NUM
 
 
 class Action3(Action):
-    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> (bool, str):
+    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> ActionResult:
+        action_result = ActionResult(self)
+
         candidate = topology.get(config.get_local_as())
         candidate_client_name = f"as{candidate.identifier}_client"
         _, candidate_client_iface_idx = candidate.get_node_by_name(candidate_client_name)
@@ -43,7 +46,10 @@ class Action3(Action):
         providers_routers = list(filter(lambda x: x[1].is_provider(), topology.all()))
         if len(providers_routers) == 0:
             logging.warning("No providers found, skipping check...")
-            return True
+
+            action_result.add_result(True, "No providers found, skipped.")
+
+            return action_result
 
         for _, provider in providers_routers:
             logging.info(f"Reading networks from provider AS{provider.identifier}...")
@@ -59,7 +65,6 @@ class Action3(Action):
         utils.aggregate_v4_6_networks(all_announced_networks)
         logging.debug(f"Resulting networks are: {all_announced_networks}")
 
-        passed_checks = []
         for v, networks in all_announced_networks.items():
             logging.info(f"Performing check on IPv{v}...")
 
@@ -146,11 +151,15 @@ class Action3(Action):
                 time.sleep(20)
                 result = self._perform_spoofing_check(candidate_client,
                                                       candidate_client_ip.ip, spoofed_src_ip, provider_client_addr)
-                passed_checks.append(result)
                 if result:
-                    logging.success(f"Check passed on IPv{v} with provider AS{provider.identifier}!")
+                    msg = f"Configuration correctly blocks a spoofed packet from network {spoofing_net} " \
+                          f"towards provider AS{provider.identifier}. The packet transmitted was " \
+                          f"SrcIP={spoofed_src_ip} -> DstIP={provider_client_addr}."
                 else:
-                    logging.warning(f"Check not passed on IPv{v} with provider AS{provider.identifier}!")
+                    msg = f"Configuration allows to send a spoofed packet from network {spoofing_net} " \
+                          f"towards provider AS{provider.identifier}. The packet transmitted was " \
+                          f"SrcIP={spoofed_src_ip} -> DstIP={provider_client_addr}."
+                action_result.add_result(result, msg)
 
                 self._ip_addr_del(provider_device, provider_client_iface_idx, provider_ip)
                 self._ip_addr_del(provider_client, 0, provider_client_ip)
@@ -165,7 +174,7 @@ class Action3(Action):
             self._ip_addr_del(internet_router_client, 0, internet_router_client_ip)
             self._ip_route_del(internet_router_client, default_net, internet_router_ip.ip, 0)
 
-        return all(passed_checks)
+        return action_result
 
     @staticmethod
     def _get_non_overlapping_address(network: ipaddress.IPv4Network | ipaddress.IPv6Network,

@@ -11,6 +11,7 @@ from Kathara.model.Lab import Lab
 from .action_3 import Action3
 from .action_4 import Action4
 from ..foundation.actions.action import Action
+from ..foundation.actions.action_result import ActionResult
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..foundation.exceptions import BgpRuntimeError
 from ..model.topology import Topology
@@ -21,28 +22,31 @@ CONVERGENCE_ATTEMPTS = 100
 class ActionManager:
     __slots__ = ['_actions']
 
-    DEFAULT_ACTIONS = [Action3(), Action4()]
+    DEFAULT_ACTIONS: list[Action] = [Action3(), Action4()]
 
-    def __init__(self, exclude: list | None = None):
+    def __init__(self, exclude: list[str] | None = None):
         if exclude is None:
             self._actions: list[Action] = self.DEFAULT_ACTIONS
         else:
             self._actions: list[Action] = list(filter(lambda x: x.name() not in exclude, self.DEFAULT_ACTIONS))
 
-    def start(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> bool:
+    def start(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> list[ActionResult]:
         converged = self._wait_convergence(net_scenario)
         if not converged:
             raise BgpRuntimeError("BGP did not converge")
 
+        results = []
+
         logging.info("Starting MANRS actions check...")
         for action in self._actions:
             logging.info(f"Starting `{action.display_name()}` verification...")
-            result = action.verify(config, topology, net_scenario)
-            if not result:
+            action_result = action.verify(config, topology, net_scenario)
+            results.append(action_result)
+            if not action_result.passed():
                 logging.error(f"`{action.display_name()}` not passed!")
-                return False
+                return results
 
-        return True
+        return results
 
     def _wait_convergence(self, net_scenario: Lab) -> bool:
         logging.info("Checking routers convergence...")

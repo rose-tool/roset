@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ipaddress
+import json
 import logging
+from typing import Any
 
 from Kathara.model.Lab import Lab
 
@@ -246,6 +248,7 @@ class VmxConfiguration(VendorConfiguration):
 
         return name
 
+    # CommandsMixin
     def command_get_bgp_summary(self) -> str:
         return "show bgp summary"
 
@@ -263,3 +266,15 @@ class VmxConfiguration(VendorConfiguration):
         inet_str = "inet" if ip.version == 4 else "inet6"
 
         return f"configure; delete interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+
+    # FormatParserMixin
+    def parse_bgp_routes(self, result: Any) -> set:
+        output = json.loads(result)
+        
+        bgp_routes = set()
+        for route_table in output['route-information'][0]['route-table']:
+            if 'rt' in route_table:
+                for route_entry in route_table['rt']:
+                    bgp_routes.add(ipaddress.ip_network(route_entry['rt-destination'][0]['data']))
+
+        return bgp_routes
