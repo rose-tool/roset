@@ -77,7 +77,7 @@ class NetworkScenarioManager:
         # Ask to print something in order to wait the startup
         exec_output = Kathara.get_instance().exec(
             machine_name=candidate_device.name,
-            command=shlex.split(vendor_config.command_get_bgp_summary()),
+            command=shlex.split(vendor_config.command_list_file()),
             lab_name=net_scenario.name
         )
 

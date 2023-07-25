@@ -11,6 +11,7 @@ from rs4lk.batfish.batfish_configuration import BatfishConfiguration
 from rs4lk.colored_logging import set_logging
 from rs4lk.configuration.bgp_configuration import BgpConfiguration
 from rs4lk.configuration.vendor_configuration_factory import VendorConfigurationFactory
+from rs4lk.foundation.exceptions import BgpRuntimeError, ConfigValidationError
 from rs4lk.globals import DEFAULT_RIB, DEFAULT_BATFISH_URL
 from rs4lk.model.topology import Topology
 from rs4lk.mrt.table_dump import TableDump
@@ -60,16 +61,24 @@ def main(args):
     # for machine in net_scenario.machines.values():
     #     connect(machine)
 
-    action_manager = ActionManager(exclude=args.exclude_checks.split(','))
-    results = action_manager.start(vendor_config, topology, net_scenario)
-    all_passed = all([x.passed() for x in results])
-    if all_passed:
-        logging.success(f"Configuration file `{args.config_path}` is MANRS compliant!")
-    else:
-        logging.error(f"Configuration file `{args.config_path}` is not MANRS compliant!")
+    all_passed = False
+    try:
+        action_manager = ActionManager(exclude=args.exclude_checks.split(','))
+        results = action_manager.start(vendor_config, topology, net_scenario)
+        all_passed = all([x.passed() for x in results])
+        if all_passed:
+            logging.success(f"Configuration file `{args.config_path}` is MANRS compliant!")
+        else:
+            logging.error(f"Configuration file `{args.config_path}` is not MANRS compliant!")
 
-    for result in results:
-        result.print()
+        for result in results:
+            result.print()
+    except ConfigValidationError as e:
+        logging.error(e)
+        pass
+    except BgpRuntimeError as e:
+        logging.error(e)
+        pass
 
     table_dump.close()
 

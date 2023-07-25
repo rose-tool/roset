@@ -13,7 +13,7 @@ from .action_4 import Action4
 from ..foundation.actions.action import Action
 from ..foundation.actions.action_result import ActionResult
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
-from ..foundation.exceptions import BgpRuntimeError
+from ..foundation.exceptions import BgpRuntimeError, ConfigValidationError
 from ..model.topology import Topology
 
 CONVERGENCE_ATTEMPTS = 100
@@ -31,6 +31,8 @@ class ActionManager:
             self._actions: list[Action] = list(filter(lambda x: x.name() not in exclude, self.DEFAULT_ACTIONS))
 
     def start(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> list[ActionResult]:
+        self._check_configuration_validity(config, net_scenario)
+
         converged = self._wait_convergence(net_scenario)
         if not converged:
             raise BgpRuntimeError("BGP did not converge")
@@ -48,6 +50,47 @@ class ActionManager:
 
         return results
 
+    @staticmethod
+    def _check_configuration_validity(config: VendorConfiguration, net_scenario: Lab) -> None:
+        candidate_device = net_scenario.get_machine(f"as{config.get_local_as()}")
+
+        # Check until the file is copied
+        found = False
+        while not found:
+            exec_output = Kathara.get_instance().exec(
+                machine_name=candidate_device.name,
+                command=shlex.split(config.command_list_file()),
+                lab_name=net_scenario.name
+            )
+
+            output = ""
+            while True:
+                try:
+                    (stdout, stderr) = next(exec_output)
+                    output += stdout.decode('utf-8')
+                except StopIteration:
+                    break
+
+            found = config.check_file_existence(output)
+
+        # Now check if there are any errors in the configuration
+        exec_output = Kathara.get_instance().exec(
+            machine_name=candidate_device.name,
+            command=shlex.split(config.command_test_configuration()),
+            lab_name=net_scenario.name
+        )
+
+        output = ""
+        while True:
+            try:
+                (stdout, stderr) = next(exec_output)
+                output += stdout.decode('utf-8')
+            except StopIteration:
+                break
+
+        if not config.check_configuration_validity(output):
+            raise ConfigValidationError(output)
+
     def _wait_convergence(self, net_scenario: Lab) -> bool:
         logging.info("Checking routers convergence...")
 
@@ -61,7 +104,7 @@ class ActionManager:
         attempts = 0
         counter = 0
         while not counter >= 3:
-            time.sleep(5)
+            time.sleep(2)
 
             if attempts >= CONVERGENCE_ATTEMPTS:
                 logging.error(f"BGP is not converging: {CONVERGENCE_ATTEMPTS} attempts. Aborting.")

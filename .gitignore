@@ -134,3 +134,5 @@ resources/*.gz
 resources/*.db
 resources/bogons-*.txt
 snapshots/*.cfg
+
+.DS_Store
