@@ -33,7 +33,7 @@ class ActionManager:
     def start(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> list[ActionResult]:
         self._check_configuration_validity(config, net_scenario)
 
-        converged = self._wait_convergence(net_scenario)
+        converged = self._wait_convergence(config, net_scenario)
         if not converged:
             raise BgpRuntimeError("BGP did not converge")
 
@@ -91,12 +91,12 @@ class ActionManager:
         if not config.check_configuration_validity(output):
             raise ConfigValidationError(output)
 
-    def _wait_convergence(self, net_scenario: Lab) -> bool:
+    def _wait_convergence(self, config: VendorConfiguration, net_scenario: Lab) -> bool:
         logging.info("Checking routers convergence...")
 
         selected_devices = set(
             filter(
-                lambda x: 'as' in x.name and '_client' not in x.name and not x.is_virtual_router(),
+                lambda x: '_client' not in x.name and x.name != f"as{config.get_local_as()}",
                 net_scenario.machines.values()
             )
         )
