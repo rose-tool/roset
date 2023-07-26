@@ -8,7 +8,7 @@ def aggregate_networks(networks: set) -> set:
     for network in networks:
         for prefix in range(network.prefixlen - 1, 0, -1):
             super_network = network.supernet(new_prefix=prefix)
-            if super_network in aggregated_networks:
+            if super_network in aggregated_networks and network in aggregated_networks:
                 aggregated_networks.remove(network)
 
     return aggregated_networks

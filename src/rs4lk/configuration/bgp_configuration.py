@@ -5,7 +5,7 @@ from Kathara.model.Lab import Lab
 from Kathara.model.Machine import Machine
 
 from ..foundation.configuration.configuration_applier import ConfigurationApplier
-from ..model.topology import BgpRouter, Topology
+from ..model.topology import BgpRouter, Topology, INTERNET_AS_NUM
 
 # --------------------------- Start of BGP configuration templates -----------------------------------------------
 
@@ -101,16 +101,19 @@ class BgpConfiguration(ConfigurationApplier):
 
         all_ips = {4: [], 6: []}
         neighbour_config = []
-        for iface_idx, neighbours in bgp_router.neighbours.items():
-            neighbour_ips = neighbours.get_ips(is_public=True)
+        for iface_idx, neighbour in bgp_router.neighbours.items():
+            neighbour_ips = neighbour.get_ips(is_public=True)
             all_ips[4].extend(map(lambda x: x[0].ip, neighbour_ips[4]))
             all_ips[6].extend(map(lambda x: x[0].ip, neighbour_ips[6]))
+
+            neighbour_router = neighbour.neighbour
             for (iface_ip, _) in list(itertools.chain.from_iterable(neighbour_ips.values())):
                 neighbour_config.append(
-                    BGPD_NEIGHBOUR_CONFIG.format(ip=iface_ip.ip, as_num=neighbours.neighbour.identifier)
+                    BGPD_NEIGHBOUR_CONFIG.format(ip=iface_ip.ip, as_num=neighbour_router.identifier)
                 )
-                if bgp_router.is_provider() and iface_idx > 0:
-                    # Interface = 0 is towards candidate, we do not filter prefixes
+                if bgp_router.is_provider() and \
+                        (not neighbour_router.is_candidate() and neighbour_router.identifier != INTERNET_AS_NUM):
+                    # We do not filter prefixes towards candidate and Internet
                     neighbour_config.append(
                         BGPD_NEIGHBOR_FILTER.format(ip=iface_ip.ip, v=iface_ip.ip.version)
                     )

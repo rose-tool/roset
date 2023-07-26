@@ -136,8 +136,12 @@ class Action3(Action):
                     continue
 
                 # Select one network
-                candidate_net = random.choice(list(candidate_nets))
-                logging.info(f"Selected network {candidate_net} on candidate AS.")
+                while True:
+                    candidate_net = random.choice(list(candidate_nets))
+                    logging.info(f"Selected network {candidate_net} on candidate AS.")
+                    if (2 ** candidate_net.prefixlen) - 2 > 5:
+                        break
+
                 candidate_client_ip = self._get_non_overlapping_address(candidate_net, candidate_assigned_ips)
                 candidate_ip = self._get_non_overlapping_address(candidate_net,
                                                                  candidate_assigned_ips.union({candidate_client_ip}))

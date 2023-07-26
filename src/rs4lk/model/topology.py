@@ -95,12 +95,13 @@ class Client(Node):
 
 
 class BgpRouter(Node):
-    __slots__ = ['relationship', 'local_networks', 'announced_networks', 'remote_neighbours']
+    __slots__ = ['relationship', 'candidate', 'local_networks', 'announced_networks', 'remote_neighbours']
 
     def __init__(self, local_as: int, relationship: int | None) -> None:
         super().__init__(local_as)
 
         self.relationship: int | None = relationship
+        self.candidate: bool = False
         self.local_networks: dict[int, list] = {4: [], 6: []}
         self.announced_networks: dict[int, list] = {4: [], 6: []}
         self.remote_neighbours: dict = {}
@@ -117,6 +118,9 @@ class BgpRouter(Node):
 
     def is_customer(self) -> bool:
         return self.relationship == 2
+
+    def is_candidate(self) -> bool:
+        return self.candidate
 
     def add_local_network(self, net: ipaddress.IPv4Network | ipaddress.IPv6Network) -> None:
         self.local_networks[net.version].append(net)
@@ -187,6 +191,7 @@ class Topology:
         # First, add the candidate router
         candidate_local_as = self._vendor_config.get_local_as()
         candidate_router = BgpRouter(candidate_local_as, None)
+        candidate_router.candidate = True
         self._nodes[candidate_local_as] = candidate_router
 
         # First, directly connected ones
