@@ -98,11 +98,21 @@ class Action3(Action):
                     action_result.add_result(1, f"AS{provider.identifier} does not announce networks in IPv{v}.")
                     continue
 
-                while True:
-                    provider_net = random.choice(list(provider.local_networks[v]))
-                    logging.info(f"Selected network {provider_net} on AS{provider.identifier}.")
-                    if (2 ** provider_net.prefixlen) - 2 > 5:
+                provider_net = None
+                provider_local_nets = list(provider.local_networks[v])
+                while len(provider_local_nets) > 0:
+                    provider_net_rand = random.choice(provider_local_nets)
+                    provider_local_nets.remove(provider_net_rand)
+                    if (2 ** provider_net_rand.prefixlen) - 2 > 5:
+                        provider_net = provider_net_rand
                         break
+
+                if provider_net is None:
+                    logging.warning(f"No viable IPv{v} networks on AS{provider.identifier}, skipping...")
+                    action_result.add_result(1, f"No viable IPv{v} networks on AS{provider.identifier}.")
+                    continue
+
+                logging.info(f"Selected network {provider_net} on AS{provider.identifier}.")
                 provider_net_hosts = provider_net.hosts()
 
                 provider_client_name = f"as{provider.identifier}_client"
@@ -136,11 +146,21 @@ class Action3(Action):
                     continue
 
                 # Select one network
-                while True:
-                    candidate_net = random.choice(list(candidate_nets))
-                    logging.info(f"Selected network {candidate_net} on candidate AS.")
-                    if (2 ** candidate_net.prefixlen) - 2 > 5:
+                candidate_net = None
+                candidate_local_nets = list(candidate_nets)
+                while len(candidate_local_nets) > 0:
+                    candidate_net_rand = random.choice(candidate_local_nets)
+                    candidate_local_nets.remove(candidate_net_rand)
+                    if (2 ** candidate_net_rand.prefixlen) - 2 > 5:
+                        candidate_net = candidate_net_rand
                         break
+
+                if candidate_net is None:
+                    logging.warning(f"No viable IPv{v} networks on candidate AS, skipping...")
+                    action_result.add_result(1, f"No viable IPv{v} networks on candidate AS.")
+                    continue
+
+                logging.info(f"Selected network {candidate_net} on candidate AS.")
 
                 candidate_client_ip = self._get_non_overlapping_address(candidate_net, candidate_assigned_ips)
                 candidate_ip = self._get_non_overlapping_address(candidate_net,
