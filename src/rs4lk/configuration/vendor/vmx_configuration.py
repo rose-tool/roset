@@ -249,8 +249,11 @@ class VmxConfiguration(VendorConfiguration):
         return name
 
     # CommandsMixin
-    def command_get_bgp_summary(self) -> str:
-        return "show bgp summary"
+    def command_list_file(self) -> str:
+        return "file list startup-config.cfg"
+
+    def command_test_configuration(self) -> str:
+        return "configure; commit check; exit"
 
     def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
         return f"show route receive-protocol bgp {str(neighbour_ip)} all | display json"
@@ -268,9 +271,15 @@ class VmxConfiguration(VendorConfiguration):
         return f"configure; delete interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
 
     # FormatParserMixin
+    def check_file_existence(self, result: str) -> bool:
+        return "No such file or directory" not in result
+
+    def check_configuration_validity(self, result: str) -> bool:
+        return "configuration check succeeds" in result
+
     def parse_bgp_routes(self, result: Any) -> set:
         output = json.loads(result)
-        
+
         bgp_routes = set()
         for route_table in output['route-information'][0]['route-table']:
             if 'rt' in route_table:

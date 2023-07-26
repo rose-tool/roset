@@ -46,9 +46,7 @@ class Action3(Action):
         providers_routers = list(filter(lambda x: x[1].is_provider(), topology.all()))
         if len(providers_routers) == 0:
             logging.warning("No providers found, skipping check...")
-
-            action_result.add_result(True, "No providers found, skipped.")
-
+            action_result.add_result(1, "No providers found.")
             return action_result
 
         for _, provider in providers_routers:
@@ -70,6 +68,7 @@ class Action3(Action):
 
             if not networks:
                 logging.warning(f"No networks announced in IPv{v}, skipping...")
+                action_result.add_result(1, f"No networks announced in IPv{v}.")
                 continue
 
             default_net = ipaddress.IPv4Network("0.0.0.0/0") if v == 4 else ipaddress.IPv6Network("::/0")
@@ -96,6 +95,7 @@ class Action3(Action):
                 # Peek one provider network
                 if len(provider.local_networks[v]) == 0:
                     logging.warning(f"AS{provider.identifier} does not announce networks in IPv{v}, skipping...")
+                    action_result.add_result(1, f"AS{provider.identifier} does not announce networks in IPv{v}.")
                     continue
 
                 while True:
@@ -130,11 +130,18 @@ class Action3(Action):
                     logging.warning(
                         f"No networks advertised by candidate to AS{provider.identifier} on IPv{v}, skipping..."
                     )
+                    action_result.add_result(
+                        1, f"No networks advertised by candidate to AS{provider.identifier} on IPv{v}."
+                    )
                     continue
 
                 # Select one network
-                candidate_net = random.choice(list(candidate_nets))
-                logging.info(f"Selected network {candidate_net} on candidate AS.")
+                while True:
+                    candidate_net = random.choice(list(candidate_nets))
+                    logging.info(f"Selected network {candidate_net} on candidate AS.")
+                    if (2 ** candidate_net.prefixlen) - 2 > 5:
+                        break
+
                 candidate_client_ip = self._get_non_overlapping_address(candidate_net, candidate_assigned_ips)
                 candidate_ip = self._get_non_overlapping_address(candidate_net,
                                                                  candidate_assigned_ips.union({candidate_client_ip}))
@@ -159,7 +166,7 @@ class Action3(Action):
                     msg = f"Configuration allows to send a spoofed packet from network {spoofing_net} " \
                           f"towards provider AS{provider.identifier}. The packet transmitted was " \
                           f"SrcIP={spoofed_src_ip} -> DstIP={provider_client_addr}."
-                action_result.add_result(result, msg)
+                action_result.add_result(2 if result else 0, msg)
 
                 self._ip_addr_del(provider_device, provider_client_iface_idx, provider_ip)
                 self._ip_addr_del(provider_client, 0, provider_client_ip)

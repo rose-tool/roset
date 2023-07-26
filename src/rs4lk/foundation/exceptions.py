@@ -13,6 +13,11 @@ class ConfigError(Exception):
         super().__init__(f"[Configuration Error] {error_str}.")
 
 
+class ConfigValidationError(Exception):
+    def __init__(self, error_output: str) -> None:
+        super().__init__(f"Error in validating the configuration! Original Output:\n{error_output}")
+
+
 # Topology Exceptions
 class TopologyError(Exception):
     def __init__(self, error_str: str) -> None:

@@ -29,9 +29,7 @@ class Action4(Action):
         providers_routers = list(filter(lambda x: x[1].is_provider(), topology.all()))
         if len(providers_routers) == 0:
             logging.warning("No providers found, skipping check...")
-
-            action_result.add_result(True, "No providers found, skipped.")
-
+            action_result.add_result(1, "No providers found.")
             return action_result
 
         for _, provider in providers_routers:
@@ -51,9 +49,7 @@ class Action4(Action):
         customer_routers = list(filter(lambda x: x[1].is_customer(), topology.all()))
         if len(customer_routers) == 0:
             logging.warning("No customers found, skipping check...")
-
-            action_result.add_result(True, "No customers found, skipped.")
-
+            action_result.add_result(1, "No customers found.")
             return action_result
 
         for v, networks in all_announced_networks.items():
@@ -61,6 +57,7 @@ class Action4(Action):
 
             if not networks:
                 logging.warning(f"No networks announced in IPv{v}, skipping...")
+                action_result.add_result(1, f"No networks announced in IPv{v}.")
                 continue
 
             spoofing_net = action_utils.get_non_overlapping_network(v, networks)
@@ -70,12 +67,15 @@ class Action4(Action):
                 candidate_neighbour, _ = customer.get_neighbour_by_name(candidate.name)
                 if not candidate_neighbour:
                     logging.info(f"Skipping AS{customer.identifier} since it is not directly connected.")
+                    action_result.add_result(1, f"AS{customer.identifier} skipped since it is not directly connected.")
                     continue
 
                 candidate_ips = candidate_neighbour.get_ips(is_public=True)
                 if len(candidate_ips[v]) == 0:
                     logging.warning(f"No networks announced in IPv{v} from "
                                     f"customer AS{customer.identifier} towards candidate AS, skipping...")
+                    action_result.add_result(1, f"No networks announced in IPv{v} from "
+                                                f"customer AS{customer.identifier} towards candidate AS.")
                     continue
 
                 customer_device = net_scenario.get_machine(customer.name)
@@ -109,7 +109,7 @@ class Action4(Action):
                     else:
                         msg = f"Configuration allows to announce the spoofed network {spoofing_net} of " \
                               f"customer AS{customer.identifier} towards provider AS{provider.identifier}."
-                    action_result.add_result(result, msg)
+                    action_result.add_result(2 if result else 0, msg)
 
                 self._no_vtysh_network(customer_device, customer.identifier, spoofing_net)
 
