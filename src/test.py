@@ -66,8 +66,12 @@ def main(args):
         action_manager = ActionManager(exclude=args.exclude_checks.split(','))
         results = action_manager.start(vendor_config, topology, net_scenario)
         all_passed = all([x.passed() for x in results])
+        has_warnings = any([x.has_warnings() for x in results])
         if all_passed:
-            logging.success(f"Configuration file `{args.config_path}` is MANRS compliant!")
+            if not has_warnings:
+                logging.success(f"Configuration file `{args.config_path}` is MANRS compliant!")
+            else:
+                logging.warning(f"Configuration file `{args.config_path}` is MANRS compliant with warnings!")
         else:
             logging.error(f"Configuration file `{args.config_path}` is not MANRS compliant!")
 
