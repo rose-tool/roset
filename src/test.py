@@ -11,6 +11,7 @@ from rs4lk.batfish.batfish_configuration import BatfishConfiguration
 from rs4lk.colored_logging import set_logging
 from rs4lk.configuration.bgp_configuration import BgpConfiguration
 from rs4lk.configuration.vendor_configuration_factory import VendorConfigurationFactory
+from rs4lk.foundation.actions.action_result import WARNING
 from rs4lk.foundation.exceptions import BgpRuntimeError, ConfigValidationError
 from rs4lk.globals import DEFAULT_RIB, DEFAULT_BATFISH_URL
 from rs4lk.model.topology import Topology
@@ -31,6 +32,7 @@ def parse_args():
     parser.add_argument('--config_path', type=str, required=True)
     parser.add_argument('--rib_dump', type=str, required=False, default=DEFAULT_RIB)
     parser.add_argument('--exclude_checks', type=str, required=False, default="")
+    parser.add_argument('--result-level', type=int, required=False, default=WARNING)
 
     return parser.parse_args()
 
@@ -66,17 +68,9 @@ def main(args):
         action_manager = ActionManager(exclude=args.exclude_checks.split(','))
         results = action_manager.start(vendor_config, topology, net_scenario)
         all_passed = all([x.passed() for x in results])
-        has_warnings = any([x.has_warnings() for x in results])
-        if all_passed:
-            if not has_warnings:
-                logging.success(f"Configuration file `{args.config_path}` is MANRS compliant!")
-            else:
-                logging.warning(f"Configuration file `{args.config_path}` is MANRS compliant with warnings!")
-        else:
-            logging.error(f"Configuration file `{args.config_path}` is not MANRS compliant!")
 
         for result in results:
-            result.print()
+            result.print(level=args.result_level)
     except ConfigValidationError as e:
         logging.error(e)
         pass

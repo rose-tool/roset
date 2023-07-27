@@ -65,7 +65,10 @@ class CymruBogons:
         for line in lines:
             if line.startswith('#'):
                 continue
-            self._bogons.add(ipaddress.ip_network(line.strip()))
+            try:
+                self._bogons.add(ipaddress.ip_network(line.strip()))
+            except ValueError:
+                pass
 
     def is_network_bogon(self, net: ipaddress.IPv4Network | ipaddress.IPv6Network) -> bool:
         return net in self._bogons

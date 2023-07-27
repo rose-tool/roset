@@ -12,7 +12,7 @@ from Kathara.model.Machine import Machine
 from . import action_utils
 from .. import utils
 from ..foundation.actions.action import Action
-from ..foundation.actions.action_result import ActionResult
+from ..foundation.actions.action_result import ActionResult, WARNING, SUCCESS, ERROR
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..model.topology import Topology
 
@@ -29,7 +29,7 @@ class Action4(Action):
         providers_routers = list(filter(lambda x: x[1].is_provider(), topology.all()))
         if len(providers_routers) == 0:
             logging.warning("No providers found, skipping check...")
-            action_result.add_result(1, "No providers found.")
+            action_result.add_result(WARNING, "No providers found.")
             return action_result
 
         for _, provider in providers_routers:
@@ -46,10 +46,15 @@ class Action4(Action):
         utils.aggregate_v4_6_networks(all_announced_networks)
         logging.debug(f"Resulting networks are: {all_announced_networks}")
 
-        customer_routers = list(filter(lambda x: x[1].is_customer(), topology.all()))
+        customer_routers = list(
+            filter(
+                lambda x: x[1].is_customer() and x[1].get_neighbour_by_name(candidate.name)[0] is not None,
+                topology.all()
+            )
+        )
         if len(customer_routers) == 0:
             logging.warning("No customers found, skipping check...")
-            action_result.add_result(1, "No customers found.")
+            action_result.add_result(WARNING, "No customers found.")
             return action_result
 
         for v, networks in all_announced_networks.items():
@@ -57,7 +62,7 @@ class Action4(Action):
 
             if not networks:
                 logging.warning(f"No networks announced in IPv{v}, skipping...")
-                action_result.add_result(1, f"No networks announced in IPv{v}.")
+                action_result.add_result(WARNING, f"No networks announced in IPv{v}.")
                 continue
 
             spoofing_net = action_utils.get_non_overlapping_network(v, networks)
@@ -65,17 +70,13 @@ class Action4(Action):
 
             for _, customer in customer_routers:
                 candidate_neighbour, _ = customer.get_neighbour_by_name(candidate.name)
-                if not candidate_neighbour:
-                    logging.info(f"Skipping AS{customer.identifier} since it is not directly connected.")
-                    action_result.add_result(1, f"AS{customer.identifier} skipped since it is not directly connected.")
-                    continue
 
                 candidate_ips = candidate_neighbour.get_ips(is_public=True)
                 if len(candidate_ips[v]) == 0:
                     logging.warning(f"No networks announced in IPv{v} from "
                                     f"customer AS{customer.identifier} towards candidate AS, skipping...")
-                    action_result.add_result(1, f"No networks announced in IPv{v} from "
-                                                f"customer AS{customer.identifier} towards candidate AS.")
+                    action_result.add_result(WARNING, f"No networks announced in IPv{v} from "
+                                                      f"customer AS{customer.identifier} towards candidate AS.")
                     continue
 
                 customer_device = net_scenario.get_machine(customer.name)
@@ -109,7 +110,7 @@ class Action4(Action):
                     else:
                         msg = f"Configuration allows to announce the spoofed network {spoofing_net} of " \
                               f"customer AS{customer.identifier} towards provider AS{provider.identifier}."
-                    action_result.add_result(2 if result else 0, msg)
+                    action_result.add_result(SUCCESS if result else ERROR, msg)
 
                 self._no_vtysh_network(customer_device, customer.identifier, spoofing_net)
 

@@ -4,6 +4,10 @@ import logging
 
 from .action import Action
 
+WARNING: int = 2
+SUCCESS: int = 1
+ERROR: int = 0
+
 
 class ActionResult:
     __slots__ = ['action', 'statuses', 'reasons']
@@ -18,18 +22,18 @@ class ActionResult:
         self.reasons.append(reason)
 
     def passed(self) -> bool:
-        return all([x == 1 or x == 2 for x in self.statuses])
+        return any([x == SUCCESS for x in self.statuses])
 
-    def has_warnings(self) -> bool:
-        return any([x == 1 for x in self.statuses])
-
-    def print(self) -> None:
+    def print(self, level: int) -> None:
         for i, status in enumerate(self.statuses):
             reason_str = f"[{self.action.display_name()}] {self.reasons[i]}" if self.reasons[i] else \
                 f"[{self.action.display_name()}] " + ("Passed" if status else "Failed") + " (No Message)."
-            if status == 2:
-                logging.success(reason_str)
-            elif status == 1:
+            if status > level:
+                continue
+
+            if status == WARNING:
                 logging.warning(reason_str)
-            else:
+            elif status == SUCCESS:
+                logging.success(reason_str)
+            elif status == ERROR:
                 logging.error(reason_str)

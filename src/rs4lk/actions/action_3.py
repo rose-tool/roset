@@ -16,7 +16,7 @@ from Kathara.model.Machine import Machine
 from . import action_utils
 from .. import utils
 from ..foundation.actions.action import Action
-from ..foundation.actions.action_result import ActionResult
+from ..foundation.actions.action_result import ActionResult, WARNING, SUCCESS, ERROR
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..globals import RESOURCES_FOLDER
 from ..model.topology import Topology, INTERNET_AS_NUM
@@ -46,7 +46,7 @@ class Action3(Action):
         providers_routers = list(filter(lambda x: x[1].is_provider(), topology.all()))
         if len(providers_routers) == 0:
             logging.warning("No providers found, skipping check...")
-            action_result.add_result(1, "No providers found.")
+            action_result.add_result(WARNING, "No providers found.")
             return action_result
 
         for _, provider in providers_routers:
@@ -65,10 +65,11 @@ class Action3(Action):
 
         for v, networks in all_announced_networks.items():
             logging.info(f"Performing check on IPv{v}...")
+            addr_len = 32 if v == 4 else 128
 
             if not networks:
                 logging.warning(f"No networks announced in IPv{v}, skipping...")
-                action_result.add_result(1, f"No networks announced in IPv{v}.")
+                action_result.add_result(WARNING, f"No networks announced in IPv{v}.")
                 continue
 
             default_net = ipaddress.IPv4Network("0.0.0.0/0") if v == 4 else ipaddress.IPv6Network("::/0")
@@ -95,21 +96,21 @@ class Action3(Action):
                 # Peek one provider network
                 if len(provider.local_networks[v]) == 0:
                     logging.warning(f"AS{provider.identifier} does not announce networks in IPv{v}, skipping...")
-                    action_result.add_result(1, f"AS{provider.identifier} does not announce networks in IPv{v}.")
+                    action_result.add_result(WARNING, f"AS{provider.identifier} does not announce networks in IPv{v}.")
                     continue
 
                 provider_net = None
                 provider_local_nets = list(provider.local_networks[v])
                 while len(provider_local_nets) > 0:
-                    provider_net_rand = random.choice(provider_local_nets)
-                    provider_local_nets.remove(provider_net_rand)
-                    if (2 ** provider_net_rand.prefixlen) - 2 > 5:
+                    rand_idx = random.randint(0, len(provider_local_nets) - 1)
+                    provider_net_rand = provider_local_nets.pop(rand_idx)
+                    if (2 ** (addr_len - provider_net_rand.prefixlen)) - 2 > 5:
                         provider_net = provider_net_rand
                         break
 
                 if provider_net is None:
                     logging.warning(f"No viable IPv{v} networks on AS{provider.identifier}, skipping...")
-                    action_result.add_result(1, f"No viable IPv{v} networks on AS{provider.identifier}.")
+                    action_result.add_result(WARNING, f"No viable IPv{v} networks on AS{provider.identifier}.")
                     continue
 
                 logging.info(f"Selected network {provider_net} on AS{provider.identifier}.")
@@ -141,7 +142,7 @@ class Action3(Action):
                         f"No networks advertised by candidate to AS{provider.identifier} on IPv{v}, skipping..."
                     )
                     action_result.add_result(
-                        1, f"No networks advertised by candidate to AS{provider.identifier} on IPv{v}."
+                        WARNING, f"No networks advertised by candidate to AS{provider.identifier} on IPv{v}."
                     )
                     continue
 
@@ -149,15 +150,15 @@ class Action3(Action):
                 candidate_net = None
                 candidate_local_nets = list(candidate_nets)
                 while len(candidate_local_nets) > 0:
-                    candidate_net_rand = random.choice(candidate_local_nets)
-                    candidate_local_nets.remove(candidate_net_rand)
-                    if (2 ** candidate_net_rand.prefixlen) - 2 > 5:
+                    rand_idx = random.randint(0, len(candidate_local_nets) - 1)
+                    candidate_net_rand = candidate_local_nets.pop(rand_idx)
+                    if (2 ** (addr_len - candidate_net_rand.prefixlen)) - 2 > 5:
                         candidate_net = candidate_net_rand
                         break
 
                 if candidate_net is None:
                     logging.warning(f"No viable IPv{v} networks on candidate AS, skipping...")
-                    action_result.add_result(1, f"No viable IPv{v} networks on candidate AS.")
+                    action_result.add_result(WARNING, f"No viable IPv{v} networks on candidate AS.")
                     continue
 
                 logging.info(f"Selected network {candidate_net} on candidate AS.")
@@ -186,7 +187,7 @@ class Action3(Action):
                     msg = f"Configuration allows to send a spoofed packet from network {spoofing_net} " \
                           f"towards provider AS{provider.identifier}. The packet transmitted was " \
                           f"SrcIP={spoofed_src_ip} -> DstIP={provider_client_addr}."
-                action_result.add_result(2 if result else 0, msg)
+                action_result.add_result(SUCCESS if result else ERROR, msg)
 
                 self._ip_addr_del(provider_device, provider_client_iface_idx, provider_ip)
                 self._ip_addr_del(provider_client, 0, provider_client_ip)
