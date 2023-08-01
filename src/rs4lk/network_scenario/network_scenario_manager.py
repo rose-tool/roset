@@ -92,12 +92,54 @@ class NetworkScenarioManager:
             except StopIteration:
                 pass
 
-    @staticmethod
-    def start_other_devices(net_scenario: Lab, vendor_config: VendorConfiguration) -> None:
+    def start_other_devices(self, net_scenario: Lab, vendor_config: VendorConfiguration) -> None:
         logging.info("Starting all other devices...")
 
         all_except_candidate = {x for x in net_scenario.machines.keys() if x != f"as{vendor_config.get_local_as()}"}
         Kathara.get_instance().deploy_lab(net_scenario, selected_machines=all_except_candidate)
+
+        not_healthy_routers = [x for x in all_except_candidate if "_client" not in x]
+        n_routers = len(not_healthy_routers)
+        n_healthy = 0
+        while n_healthy != n_routers:
+            for i, device_name in enumerate(not_healthy_routers):
+                logging.debug(f"Checking health of device `{device_name}`...")
+
+                device = net_scenario.get_machine(device_name)
+
+                is_healthy = self._check_device_health(device)
+                if not is_healthy:
+                    logging.warning(f"Device `{device_name}` did not start correctly! Restarting...")
+                    Kathara.get_instance().undeploy_machine(device)
+                    Kathara.get_instance().deploy_machine(device)
+                else:
+                    n_healthy += 1
+                    not_healthy_routers.pop(i)
+
+    @staticmethod
+    def _check_device_health(device: Machine) -> bool:
+        exec_output = Kathara.get_instance().exec(
+            machine_name=device.name,
+            command=shlex.split("stat -c %i /etc/frr/bgpd.conf"),
+            lab_name=device.lab.name
+        )
+
+        out = ""
+        err = ""
+        try:
+            while True:
+                (stdout, stderr) = next(exec_output)
+                stdout = stdout.decode('utf-8') if stdout else ""
+                stderr = stderr.decode('utf-8') if stderr else ""
+
+                if stdout:
+                    out += stdout
+                if stderr:
+                    err += stderr
+        except StopIteration:
+            pass
+
+        return out != "" and "No such file or directory" not in err
 
     @staticmethod
     def undeploy(net_scenario: Lab) -> None:
