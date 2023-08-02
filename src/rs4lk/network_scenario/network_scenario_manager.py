@@ -118,8 +118,7 @@ class NetworkScenarioManager:
 
     @staticmethod
     def _check_router_health(device: Machine) -> bool:
-        # Print a quick stat about bgpd.conf file
-        # If it not present then we will have an output on stderr
+        # Print bgpd.conf file to compare it
         exec_output = Kathara.get_instance().exec(
             machine_name=device.name,
             command=shlex.split("cat /etc/frr/bgpd.conf"),
@@ -151,7 +150,7 @@ class NetworkScenarioManager:
         if runtime_config != static_config:
             return False
 
-        # If configuration files exist, check if BGP is running
+        # If configuration files exist and is correct, check if BGP is running
         exec_output = Kathara.get_instance().exec(
             machine_name=device.name,
             command=shlex.split("vtysh -c 'show bgp summary'"),
