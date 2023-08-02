@@ -146,7 +146,9 @@ class NetworkScenarioManager:
         # /etc/frr/bgpd.conf file is copied but not correctly
         with device.fs.open('/etc/frr/bgpd.conf', 'r') as bgpd:
             static_config = bgpd.readlines()
-        if [x.strip() for x in config_out.split("\n")] != static_config:
+        static_config = list(filter(lambda x: x != '', [x.strip() for x in static_config]))
+        runtime_config = list(filter(lambda x: x != '', [x.strip() for x in config_out.split("\n")]))
+        if runtime_config != static_config:
             return False
 
         # If configuration files exist, check if BGP is running
