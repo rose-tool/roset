@@ -122,7 +122,7 @@ class NetworkScenarioManager:
         # If it not present then we will have an output on stderr
         exec_output = Kathara.get_instance().exec(
             machine_name=device.name,
-            command=shlex.split("stat -c %s /etc/frr/bgpd.conf"),
+            command=shlex.split("cat /etc/frr/bgpd.conf"),
             lab_name=device.lab.name
         )
         config_out = ""
@@ -143,8 +143,10 @@ class NetworkScenarioManager:
         # /etc/frr/bgpd.conf file is not copied
         if config_out == "" and "No such file or directory" in config_err:
             return False
-        # /etc/frr/bgpd.conf file is copied but empty
-        if int(config_out.strip()) == 0:
+        # /etc/frr/bgpd.conf file is copied but not correctly
+        with device.fs.open('/etc/frr/bgpd.conf', 'r') as bgpd:
+            static_config = bgpd.readlines()
+        if [x.strip() for x in config_out.split("\n")] != static_config:
             return False
 
         # If configuration files exist, check if BGP is running
