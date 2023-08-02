@@ -125,8 +125,8 @@ class NetworkScenarioManager:
             command=shlex.split("stat -c %i /etc/frr/bgpd.conf"),
             lab_name=device.lab.name
         )
-        out = ""
-        err = ""
+        config_out = ""
+        config_err = ""
         try:
             while True:
                 (stdout, stderr) = next(exec_output)
@@ -134,13 +134,13 @@ class NetworkScenarioManager:
                 stderr = stderr.decode('utf-8') if stderr else ""
 
                 if stdout:
-                    out += stdout
+                    config_out += stdout
                 if stderr:
-                    err += stderr
+                    config_err += stderr
         except StopIteration:
             pass
 
-        if out == "" and "No such file or directory" in err:
+        if config_out == "" and "No such file or directory" in config_err:
             return False
 
         # If configuration files exist, check if BGP is running
@@ -149,18 +149,22 @@ class NetworkScenarioManager:
             command=shlex.split("vtysh -c 'show bgp summary'"),
             lab_name=device.lab.name
         )
-        out = ""
+        vtysh_out = ""
+        vtysh_err = ""
         try:
             while True:
-                (stdout, _) = next(exec_output)
+                (stdout, stderr) = next(exec_output)
                 stdout = stdout.decode('utf-8') if stdout else ""
+                stderr = stderr.decode('utf-8') if stderr else ""
 
                 if stdout:
-                    out += stdout
+                    vtysh_out += stdout
+                if stderr:
+                    vtysh_err += stderr
         except StopIteration:
             pass
 
-        return "bgpd is not running" not in out
+        return vtysh_out != "" and "bgpd is not running" not in vtysh_err
 
     @staticmethod
     def undeploy(net_scenario: Lab) -> None:
