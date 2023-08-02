@@ -107,7 +107,7 @@ class NetworkScenarioManager:
 
                 device = net_scenario.get_machine(device_name)
 
-                is_healthy = self._check_device_health(device)
+                is_healthy = self._check_router_health(device)
                 if not is_healthy:
                     logging.warning(f"Device `{device_name}` did not start correctly! Restarting...")
                     Kathara.get_instance().undeploy_machine(device)
@@ -117,7 +117,8 @@ class NetworkScenarioManager:
                     not_healthy_routers.pop(i)
 
     @staticmethod
-    def _check_device_health(device: Machine) -> bool:
+    def _check_router_health(device: Machine) -> bool:
+        # Print a quick stat about bgpd.conf file. If it not present then we will have an output on stderr
         exec_output = Kathara.get_instance().exec(
             machine_name=device.name,
             command=shlex.split("stat -c %i /etc/frr/bgpd.conf"),
