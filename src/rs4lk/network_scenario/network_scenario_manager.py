@@ -118,13 +118,13 @@ class NetworkScenarioManager:
 
     @staticmethod
     def _check_router_health(device: Machine) -> bool:
-        # Print a quick stat about bgpd.conf file. If it not present then we will have an output on stderr
+        # Print a quick stat about bgpd.conf file
+        # If it not present then we will have an output on stderr
         exec_output = Kathara.get_instance().exec(
             machine_name=device.name,
             command=shlex.split("stat -c %i /etc/frr/bgpd.conf"),
             lab_name=device.lab.name
         )
-
         out = ""
         err = ""
         try:
@@ -140,7 +140,27 @@ class NetworkScenarioManager:
         except StopIteration:
             pass
 
-        return out != "" and "No such file or directory" not in err
+        if out == "" and "No such file or directory" in err:
+            return False
+
+        # If configuration files exist, check if BGP is running
+        exec_output = Kathara.get_instance().exec(
+            machine_name=device.name,
+            command=shlex.split("vtysh -c 'show bgp summary'"),
+            lab_name=device.lab.name
+        )
+        out = ""
+        try:
+            while True:
+                (stdout, _) = next(exec_output)
+                stdout = stdout.decode('utf-8') if stdout else ""
+
+                if stdout:
+                    out += stdout
+        except StopIteration:
+            pass
+
+        return "bgpd is not running" not in out
 
     @staticmethod
     def undeploy(net_scenario: Lab) -> None:
