@@ -122,7 +122,7 @@ class NetworkScenarioManager:
         # If it not present then we will have an output on stderr
         exec_output = Kathara.get_instance().exec(
             machine_name=device.name,
-            command=shlex.split("stat -c %i /etc/frr/bgpd.conf"),
+            command=shlex.split("stat -c %s /etc/frr/bgpd.conf"),
             lab_name=device.lab.name
         )
         config_out = ""
@@ -140,7 +140,11 @@ class NetworkScenarioManager:
         except StopIteration:
             pass
 
+        # /etc/frr/bgpd.conf file is not copied
         if config_out == "" and "No such file or directory" in config_err:
+            return False
+        # /etc/frr/bgpd.conf file is copied but empty
+        if int(config_out.strip()) == 0:
             return False
 
         # If configuration files exist, check if BGP is running
@@ -164,7 +168,14 @@ class NetworkScenarioManager:
         except StopIteration:
             pass
 
-        return vtysh_out != "" and "bgpd is not running" not in vtysh_err
+        # Something is wrong with /etc/frr/daemons file
+        if vtysh_out == "" and "bgpd is not running" in vtysh_err:
+            return False
+        # Something is wrong with BGP instance
+        if "% BGP instance not found" in vtysh_out:
+            return False
+
+        return True
 
     @staticmethod
     def undeploy(net_scenario: Lab) -> None:
