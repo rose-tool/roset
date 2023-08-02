@@ -129,7 +129,7 @@ class ActionManager:
 
         converged_routers = []
 
-        for machine, summary in summaries.items():
+        for device, summary in summaries.items():
             has_ipv4 = False
             flag_ipv4 = True
             has_ipv6 = False
@@ -157,13 +157,13 @@ class ActionManager:
     def _get_routers_summary(selected_devices: set) -> dict:
         summaries = {}
 
-        for machine in selected_devices:
-            logging.debug(f"Querying router `{machine.name}`...")
+        for device in selected_devices:
+            logging.debug(f"Querying router `{device.name}`...")
 
             exec_output = Kathara.get_instance().exec(
-                machine_name=machine.name,
+                machine_name=device.name,
                 command=shlex.split("vtysh -c 'show bgp summary json'"),
-                lab_name=machine.lab.name
+                lab_name=device.lab.name
             )
 
             bgp_summary = ""
@@ -181,8 +181,8 @@ class ActionManager:
                 bgp_summary = json.loads(bgp_summary)
             except ValueError:
                 bgp_summary = None
-                logging.error(f"Unable to parse BGP JSON of device `{machine.name}`.")
+                logging.error(f"Unable to parse BGP JSON of device `{device.name}`.")
 
-            summaries[machine.name] = bgp_summary
+            summaries[device.name] = bgp_summary
 
         return summaries
