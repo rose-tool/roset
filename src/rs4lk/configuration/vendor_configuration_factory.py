@@ -7,7 +7,10 @@ from ..foundation.factory.Factory import Factory
 
 
 class VendorConfigurationFactory(Factory):
-    format_to_type: dict = {'FLAT_JUNIPER': 'vmx'}
+    format_to_type: dict = {
+        'FLAT_JUNIPER': 'vmx',
+        'CISCO_IOS_XR': 'ios_xr'
+    }
 
     def __init__(self) -> None:
         self.module_template: str = "rs4lk.configuration.vendor"

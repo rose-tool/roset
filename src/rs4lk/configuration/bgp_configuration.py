@@ -90,7 +90,7 @@ class BgpConfiguration(ConfigurationApplier):
         self._write_device_configuration(device, bgp_router)
 
         with device.lab.fs.open(f"{device.name}.startup", 'a') as startup:
-            startup.write('/etc/init.d/frr start')
+            startup.write('systemctl start frr')
 
     @staticmethod
     def _write_device_configuration(device: Machine, bgp_router: BgpRouter) -> None:
@@ -101,22 +101,23 @@ class BgpConfiguration(ConfigurationApplier):
 
         all_ips = {4: [], 6: []}
         neighbour_config = []
-        for iface_idx, neighbour in bgp_router.neighbours.items():
-            neighbour_ips = neighbour.get_ips(is_public=True)
-            all_ips[4].extend(map(lambda x: x[0].ip, neighbour_ips[4]))
-            all_ips[6].extend(map(lambda x: x[0].ip, neighbour_ips[6]))
+        for iface_idx, neighbours in bgp_router.neighbours.items():
+            for neighbour in neighbours.values():
+                neighbour_ips = neighbour.get_neighbours_ips(is_public=True)
+                all_ips[4].extend(map(lambda x: x[1].ip, neighbour_ips[4]))
+                all_ips[6].extend(map(lambda x: x[1].ip, neighbour_ips[6]))
 
-            neighbour_router = neighbour.neighbour
-            for (iface_ip, _) in list(itertools.chain.from_iterable(neighbour_ips.values())):
-                neighbour_config.append(
-                    BGPD_NEIGHBOUR_CONFIG.format(ip=iface_ip.ip, as_num=neighbour_router.identifier)
-                )
-                if bgp_router.is_provider() and \
-                        (not neighbour_router.is_candidate() and neighbour_router.identifier != INTERNET_AS_NUM):
-                    # We do not filter prefixes towards candidate and Internet
+                neighbour_router = neighbour.neighbour
+                for (_, iface_ip, _) in list(itertools.chain.from_iterable(neighbour_ips.values())):
                     neighbour_config.append(
-                        BGPD_NEIGHBOR_FILTER.format(ip=iface_ip.ip, v=iface_ip.ip.version)
+                        BGPD_NEIGHBOUR_CONFIG.format(ip=iface_ip.ip, as_num=neighbour_router.identifier)
                     )
+                    if bgp_router.is_provider() and \
+                            (not neighbour_router.is_candidate() and neighbour_router.identifier != INTERNET_AS_NUM):
+                        # We do not filter prefixes towards candidate and Internet
+                        neighbour_config.append(
+                            BGPD_NEIGHBOR_FILTER.format(ip=iface_ip.ip, v=iface_ip.ip.version)
+                        )
 
         for remote_as_num, remote_v_ips in bgp_router.remote_neighbours.items():
             all_ips[4].extend(remote_v_ips[4])

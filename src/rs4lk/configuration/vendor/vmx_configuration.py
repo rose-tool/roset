@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import ipaddress
 import json
 import logging
@@ -13,7 +11,7 @@ from ...model.bgp_session import BgpSession
 
 
 class VmxConfiguration(VendorConfiguration):
-    def _init(self):
+    def _init(self) -> None:
         self._parse_ipv6_interface_addresses()
         self._parse_ipv6_sessions()
         self._remap_interfaces()
@@ -121,6 +119,7 @@ class VmxConfiguration(VendorConfiguration):
             self._remap_interface(iface)
 
     def _remap_interface(self, iface: dict) -> None:
+        # TODO: Fix interface remapping
         if '-' not in iface['Interface']['interface']:
             return
 
@@ -132,6 +131,8 @@ class VmxConfiguration(VendorConfiguration):
         iface['Interface']['vendor_interface'] = iface['Interface']['interface']
         iface['Interface']['interface'] = self._build_iface_name('ge', slot, 0, pic + 1, unit)
 
+        self.iface_to_iface_idx[iface['Interface']['vendor_interface']] = pic + 1
+
         logging.debug(f"Interface `{iface['Interface']['vendor_interface']}` "
                       f"remapped into `{iface['Interface']['interface']}`.")
 
@@ -140,9 +141,8 @@ class VmxConfiguration(VendorConfiguration):
             if session.iface:
                 iface_name = session.iface
                 iface_type, slot, port, pic, unit = self._parse_iface_format(iface_name)
-                iface_idx = pic
-
-                session.iface_idx = iface_idx
+                session.iface_idx = pic
+                session.vlan = unit
 
     def get_image(self) -> str:
         return 'vrnetlab/vr-vmx:18.2R1.9'
@@ -180,7 +180,7 @@ class VmxConfiguration(VendorConfiguration):
             all_lines = all_lines.replace(name_to_search_unit, name_to_replace_unit)
             all_lines = all_lines.replace(name_to_search, name_to_replace)
 
-        candidate_router.create_file_from_string(all_lines, "/config/startup-config.cfg")
+        candidate_router.create_file_from_string(all_lines, self.CONFIG_FILE_PATH)
 
     def get_lines(self) -> list[str]:
         clean_lines = []

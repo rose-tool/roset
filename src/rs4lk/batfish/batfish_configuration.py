@@ -1,11 +1,8 @@
-from __future__ import annotations
-
 import ipaddress
 import logging
 import os
 import shutil
 import tempfile
-from typing import Any
 
 from pybatfish.client.session import Session
 
@@ -13,7 +10,7 @@ from ..model.bgp_session import BgpSession, BgpPeering
 
 
 class BatfishConfiguration:
-    __slots__ = ['path', 'name', 'session', '_ripe_api', '_format', '_interfaces', '_local_as', '_sessions']
+    __slots__ = ['path', 'name', 'session', '_format', '_interfaces', '_local_as', '_sessions']
 
     def __init__(self, url: str, path: str) -> None:
         self.session: Session = Session(host=url)
@@ -94,7 +91,8 @@ class BatfishConfiguration:
 
         return True
 
-    def get_interface_for_peering(self, bgp_peering: BgpPeering) -> (str | None, Any | None):
+    def get_interface_for_peering(self, bgp_peering: BgpPeering) \
+            -> (str | None, ipaddress.IPv4Interface | ipaddress.IPv6Interface | None):
         selected_iface_name = None
         selected_iface_ip = None
         last_plen = -1

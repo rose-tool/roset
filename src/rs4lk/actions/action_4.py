@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import ipaddress
 import logging
 import shlex
@@ -71,7 +69,7 @@ class Action4(Action):
             for _, customer in customer_routers:
                 candidate_neighbour, _ = customer.get_neighbour_by_name(candidate.name)
 
-                candidate_ips = candidate_neighbour.get_ips(is_public=True)
+                candidate_ips = candidate_neighbour.get_neighbours_ips(is_public=True)
                 if len(candidate_ips[v]) == 0:
                     logging.warning(f"No networks announced in IPv{v} from "
                                     f"customer AS{customer.identifier} towards candidate AS, skipping...")
@@ -85,7 +83,7 @@ class Action4(Action):
                 self._vtysh_network(customer_device, customer.identifier, spoofing_net)
                 customer_neigh, _ = candidate.get_neighbour_by_name(customer.name)
                 # We can surely pop since there is only one public IP towards the customer router
-                (customer_peering_ip, _) = customer_neigh.get_ips(is_public=True)[v].pop()
+                (_, customer_peering_ip, _) = customer_neigh.get_neighbours_ips(is_public=True)[v].pop()
 
                 while True:
                     time.sleep(2)
@@ -100,7 +98,7 @@ class Action4(Action):
 
                     candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
                     # We can surely pop since there is only one public IP towards the candidate router
-                    (cand_peering_ip, _) = candidate_neigh.get_ips(is_public=True)[v].pop()
+                    (_, cand_peering_ip, _) = candidate_neigh.get_neighbours_ips(is_public=True)[v].pop()
                     candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)
 
                     result = spoofing_net not in candidate_nets

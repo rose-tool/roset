@@ -54,14 +54,15 @@ def main(args):
 
     vendor_config.apply_to_network_scenario(net_scenario)
 
-    Setting.get_instance().load_from_dict({'image': 'kathara/frr'})
     logging.info("Deploying network scenario...")
     net_scenario_manager.start_candidate_device(net_scenario, vendor_config)
     net_scenario_manager.start_other_devices(net_scenario, vendor_config)
     logging.success("Network scenario deployed successfully.")
 
-    # for machine in net_scenario.machines.values():
-    #     connect(machine)
+    exit()
+
+    for machine in net_scenario.machines.values():
+        connect(machine)
 
     all_passed = False
     try:

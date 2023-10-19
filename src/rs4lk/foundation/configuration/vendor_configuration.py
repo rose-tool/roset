@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from abc import ABC, abstractmethod
 
@@ -12,11 +10,14 @@ from ...model.bgp_session import BgpSession
 
 
 class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParser, ABC):
-    __slots__ = ['_batfish_config', '_lines', '_ripe_api']
+    __slots__ = ['_batfish_config', '_lines', 'iface_to_iface_idx']
+
+    CONFIG_FILE_PATH: str = "/config/startup-config.cfg"
 
     def __init__(self) -> None:
         self._batfish_config: BatfishConfiguration | None = None
         self._lines: list[str] | None = None
+        self.iface_to_iface_idx: dict[str, int] = {}
 
     @property
     def name(self) -> str:
@@ -50,8 +51,6 @@ class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParse
 
         if not self._lines:
             raise ConfigError("Empty config file")
-
-        self._lines = [x.strip() for x in self._lines]
 
         self._batfish_config.get_interfaces()
         self._batfish_config.get_bgp_sessions()

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import ipaddress
 import itertools
 import logging
@@ -131,7 +129,7 @@ class Action3(Action):
 
                 candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
                 # We can surely pop since there is only one public IP towards the candidate router
-                (cand_peering_ip, _) = candidate_neigh.get_ips(is_public=True)[v].pop()
+                (_, cand_peering_ip, _) = candidate_neigh.get_neighbours_ips(is_public=True)[v].pop()
 
                 # Get the announced candidate networks towards this provider
                 candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)

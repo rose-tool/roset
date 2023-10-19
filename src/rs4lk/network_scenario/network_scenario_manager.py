@@ -27,17 +27,28 @@ class NetworkScenarioManager:
             if isinstance(node, BgpRouter) and node.relationship is None:
                 continue
 
-            for iface_idx, iface in node.neighbours.items():
+            vlans = set()
+            for iface_idx, neighbours in node.neighbours.items():
                 with device.lab.fs.open(f"{device.name}.startup", 'a+') as startup:
-                    for v_ips in iface.local_ips.values():
-                        startup.write("".join([f"ip addr add {x} dev eth{iface_idx}\n" for (x, _) in v_ips]))
+                    for neighbour in neighbours.values():
+                        for v_ips in neighbour.local_ips.values():
+                            for (vlan, ip, _) in v_ips:
+                                iface_name = f"eth{iface_idx}" if vlan is None else f"eth{iface_idx}.{vlan}"
+
+                                if vlan is not None and vlan not in vlans:
+                                    phy = f"eth{iface_idx}"
+                                    startup.write(f"ip link add link {phy} name {iface_name} type vlan id {vlan}\n")
+                                    startup.write(f"ip link set dev {iface_name} up\n")
+                                    vlans.add(vlan)
+
+                                startup.write(f"ip addr add {ip} dev {iface_name}\n")
 
         return net_scenario
 
     def _build_device(self, net_scenario: Lab, node: Node) -> Machine:
         device_name = node.name
 
-        if not net_scenario.find_machine(node.name):
+        if not net_scenario.has_machine(node.name):
             device = net_scenario.new_machine(device_name)
             logging.info(f"Device `{device_name}` created.")
 
@@ -47,20 +58,24 @@ class NetworkScenarioManager:
                 device.add_meta('image', 'kathara/base')
 
             if isinstance(node, BgpRouter) and node.relationship is None:
-                device.add_meta('ipv6', "False")
+                device.add_meta('ipv6', False)
             else:
-                device.add_meta('ipv6', "True")
+                device.add_meta('ipv6', True)
 
-            for iface_idx, iface in node.neighbours.items():
-                net_scenario.connect_machine_to_link(device_name, iface.cd, machine_iface_number=iface_idx)
+            for iface_idx, neighbours in node.neighbours.items():
+                cd = node.get_cd_by_iface_idx(iface_idx)
+                net_scenario.connect_machine_to_link(device_name, cd, machine_iface_number=iface_idx)
 
                 logging.info(f"Device `{device_name}` connected " +
-                             (f"with `{iface.neighbour.name}` " if iface.neighbour else "") +
-                             f"on collision domain `{iface.cd}` with "
+                             f"on collision domain `{cd}` with "
                              f"interface idx={iface_idx}.")
 
-                if iface.neighbour:
-                    self._build_device(net_scenario, iface.neighbour)
+                for neighbour in neighbours.values():
+                    logging.info(f"Connecting `{device_name}` with neighbour `{neighbour.neighbour.name}` "
+                                 f"on collision domain `{cd}` with "
+                                 f"interface idx={iface_idx}.")
+
+                    self._build_device(net_scenario, neighbour.neighbour)
 
             return device
         else:

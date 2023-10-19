@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 import ipaddress
 
 
 class BgpSession:
-    __slots__ = ['local_as', 'remote_as', 'peerings', 'relationship', 'iface', 'iface_idx']
+    __slots__ = ['local_as', 'remote_as', 'peerings', 'relationship', 'iface', 'iface_idx', 'vlan']
 
     def __init__(self, local_as: int, remote_as: int) -> None:
         self.local_as: int = local_as
@@ -15,6 +13,7 @@ class BgpSession:
 
         self.iface: str | None = None
         self.iface_idx: int = -1
+        self.vlan: int | None = None
 
     def add_peering(self, local_ip: str | None, remote_ip: str, group: str | None = None) -> None:
         self.peerings.append(BgpPeering(self, local_ip, remote_ip, group))
@@ -29,8 +28,9 @@ class BgpSession:
         return self.relationship == 2
 
     def __repr__(self) -> str:
-        return f"({self.local_as}=>{self.remote_as} (relationship={self.relationship}) " \
-               f"on iface={self.iface} (idx={self.iface_idx}) with peerings={self.peerings})"
+        return f"({self.local_as}=>{self.remote_as} (relationship={self.relationship}) " + \
+            f"on iface={self.iface} (idx={self.iface_idx}" + (f".{self.vlan}" if self.vlan else "") + \
+            f") with peerings={self.peerings})"
 
 
 class BgpPeering:
@@ -39,7 +39,8 @@ class BgpPeering:
     def __init__(self, session: BgpSession, local_ip: str | None, remote_ip: str, group: str | None = None) -> None:
         self.session: BgpSession = session
 
-        self.local_ip: ipaddress.IPv4Address | ipaddress.IPv6Address | None = ipaddress.ip_address(local_ip) \
+        self.local_ip: (ipaddress.IPv4Address | ipaddress.IPv6Address |
+                        ipaddress.IPv4Interface | ipaddress.IPv6Interface | None) = ipaddress.ip_address(local_ip) \
             if local_ip is not None else None
         self.remote_ip: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(remote_ip)
         self.group: str | None = group
