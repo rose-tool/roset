@@ -128,7 +128,22 @@ class Action3(Action):
                 self._ip_route_add(provider_client, default_net, provider_ip.ip, 0)
 
                 candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
-                # We can surely pop since there is only one public IP towards the candidate router
+                candidate_neigh_ips = candidate_neigh.get_neighbours_ips(is_public=True)
+                # Check if there is a peering on this IP version between provider and candidate.
+                if len(candidate_neigh_ips[v]) == 0:
+                    logging.warning(f"No peering on IPv{v} between AS{provider.identifier} and candidate, skipping...")
+                    action_result.add_result(
+                        WARNING, f"No peering on IPv{v} between AS{provider.identifier} and candidate."
+                    )
+
+                    self._cleanup_provider_ips(
+                        provider_device, provider_client_iface_idx, provider_ip,
+                        provider_client, provider_client_ip, default_net
+                    )
+
+                    continue
+
+                # At this point, we can surely pop since there is only one public IP towards the candidate router
                 (_, cand_peering_ip, _) = candidate_neigh.get_neighbours_ips(is_public=True)[v].pop()
 
                 # Get the announced candidate networks towards this provider
