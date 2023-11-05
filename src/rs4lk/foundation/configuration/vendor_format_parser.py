@@ -16,5 +16,9 @@ class VendorFormatParser(ABC):
         raise NotImplementedError("You must implement `check_configuration_validity` method.")
 
     @abstractmethod
+    def check_bgp_state(self, result: str) -> bool:
+        raise NotImplementedError("You must implement `check_bgp_state` method.")
+
+    @abstractmethod
     def parse_bgp_routes(self, result: Any) -> set:
         raise NotImplementedError("You must implement `parse_routing_table` method.")

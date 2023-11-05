@@ -129,8 +129,11 @@ class Action3(Action):
 
                 candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
                 candidate_neigh_ips = candidate_neigh.get_neighbours_ips(is_public=True)
-                # Check if there is a peering on this IP version between provider and candidate.
-                if len(candidate_neigh_ips[v]) == 0:
+
+                cand_peering_ip = action_utils.get_active_neighbour_peering_ip(
+                    candidate_device, config, candidate_neigh_ips[v]
+                )
+                if not cand_peering_ip:
                     logging.warning(f"No peering on IPv{v} between AS{provider.identifier} and candidate, skipping...")
                     action_result.add_result(
                         WARNING, f"No peering on IPv{v} between AS{provider.identifier} and candidate."
@@ -142,9 +145,6 @@ class Action3(Action):
                     )
 
                     continue
-
-                # At this point, we can surely pop since there is only one public IP towards the candidate router
-                (_, cand_peering_ip, _) = candidate_neigh.get_neighbours_ips(is_public=True)[v].pop()
 
                 # Get the announced candidate networks towards this provider
                 candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)

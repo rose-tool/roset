@@ -15,6 +15,9 @@ class CommandsMixin(ABC):
     def command_test_configuration(self) -> str:
         raise NotImplementedError("You must implement `command_test_configuration` method.")
 
+    def command_get_neighbour_bgp(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+        raise NotImplementedError("You must implement `command_get_neighbour_bgp` method.")
+
     @abstractmethod
     def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
         raise NotImplementedError("You must implement `command_get_neighbour_bgp_networks` method.")

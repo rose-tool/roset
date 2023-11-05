@@ -24,6 +24,24 @@ class IosXrConfiguration(VendorConfiguration):
     ZTP_APPLY_COMMAND: str = "/bin/bash -c 'source /pkg/bin/ztp_helper.sh; xrapply {file}'"
     ZTP_DIFF_APPLY_COMMAND: str = "/bin/bash -c 'source /pkg/bin/ztp_helper.sh; xrapply_string \"{command}\"'"
 
+    PREFIX_REGEX: re.Pattern = re.compile(
+        r"((\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}"
+        r"([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/\d+\s*)|"
+        r"(\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|"
+        r"(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)"
+        r"(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|"
+        r":((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}"
+        r"(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)"
+        r"(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|"
+        r"((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|"
+        r"(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:"
+        r"((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}"
+        r"(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)"
+        r"(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|"
+        r"((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))"
+        r"(%.+)?/\d+\s*))"
+    )
+
     def _init(self) -> None:
         # Cisco Parser needs a txt file, create a temporary one and read it back
         (fd, temp_file_path) = tempfile.mkstemp(suffix='.txt')
@@ -297,9 +315,19 @@ class IosXrConfiguration(VendorConfiguration):
         logging.debug(f"[{__class__}] command_test_configuration: `{command}`")
         return command
 
+    def command_get_neighbour_bgp(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+        ip_str = "ipv6 unicast" if neighbour_ip.version == 6 else ""
+        command = self.ZTP_CLI_COMMAND.format(
+            command=f"show bgp {ip_str} neighbors {str(neighbour_ip)}"
+        )
+        logging.info(f"[{__class__}] command_get_neighbour_bgp: `{command}`")
+        return command
+
     def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
         ip_str = "ipv6 unicast" if neighbour_ip.version == 6 else ""
-        command = self.ZTP_CLI_COMMAND.format(command=f"show bgp {ip_str} neighbors {str(neighbour_ip)} routes")
+        command = self.ZTP_CLI_COMMAND.format(
+            command=f"show bgp {ip_str} neighbors {str(neighbour_ip)} routes | include /"
+        )
         logging.debug(f"[{__class__}] command_get_neighbour_bgp_networks: `{command}`")
         return command
 
@@ -309,7 +337,7 @@ class IosXrConfiguration(VendorConfiguration):
 
         iface_configure = [f"interface {iface_name}", f" {ip_str} address {str(ip)}", "!"]
         command = self.ZTP_DIFF_APPLY_COMMAND.format(command="\\n".join(iface_configure))
-        logging.info(f"[{__name__}] command_set_iface_ip: `{command}`")
+        logging.debug(f"[{__name__}] command_set_iface_ip: `{command}`")
         return command
 
     def command_unset_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
@@ -318,7 +346,7 @@ class IosXrConfiguration(VendorConfiguration):
 
         iface_configure = [f"interface {iface_name}", f" no {ip_str} address {str(ip)}", "!"]
         command = self.ZTP_DIFF_APPLY_COMMAND.format(command="\\n".join(iface_configure))
-        logging.info(f"[{__class__}] command_unset_iface_ip: `{command}`")
+        logging.debug(f"[{__class__}] command_unset_iface_ip: `{command}`")
         return command
 
     # FormatParserMixin
@@ -334,14 +362,21 @@ class IosXrConfiguration(VendorConfiguration):
         # If it is empty, means that there are no errors
         return not lines
 
-    def parse_bgp_routes(self, result: Any) -> set:
-        # TODO: Parse Cisco
-        output = json.loads(result)
+    def check_bgp_state(self, result: str) -> bool:
+        for line in result.split("\n"):
+            if 'BGP state' not in line:
+                continue
 
+            (_, state) = line.split("=")
+            return "Established" in state
+
+        return False
+
+    def parse_bgp_routes(self, result: Any) -> set:
         bgp_routes = set()
-        for route_table in output['route-information'][0]['route-table']:
-            if 'rt' in route_table:
-                for route_entry in route_table['rt']:
-                    bgp_routes.add(ipaddress.ip_network(route_entry['rt-destination'][0]['data']))
+        for line in result.split("\n"):
+            matches = self.PREFIX_REGEX.search(line)
+            if matches:
+                bgp_routes.add(ipaddress.ip_network(matches.group(1).strip()))
 
         return bgp_routes

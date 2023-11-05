@@ -8,6 +8,7 @@ import shlex
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Machine import Machine
 
+from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..webhooks.cymru_bogons import CymruBogons
 
 
@@ -78,6 +79,47 @@ def get_neighbour_bgp_networks(device: Machine,
         ipaddress.ip_network(net) for net, routes in bgp_nets['routes'].items()
         if routes and any([x['valid'] and x['bestpath'] for x in routes])
     }
+
+
+def _is_vendor_neighbour_bgp_up(device: Machine, config: VendorConfiguration,
+                                neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    exec_output = Kathara.get_instance().exec(
+        machine_name=device.name,
+        command=shlex.split(config.command_get_neighbour_bgp(neighbour_ip)),
+        lab_name=device.lab.name
+    )
+    output = ""
+    try:
+        while True:
+            (stdout, _) = next(exec_output)
+            stdout = stdout.decode('utf-8') if stdout else ""
+
+            if stdout:
+                output += stdout
+    except StopIteration:
+        pass
+
+    return config.check_bgp_state(output)
+
+
+def get_active_neighbour_peering_ip(candidate_device: Machine, config: VendorConfiguration, neighbour_ips: list) \
+        -> ipaddress.IPv4Interface | ipaddress.IPv6Interface | None:
+    # Check if there is a peering on this IP version between provider and candidate.
+    if len(neighbour_ips) == 0:
+        return None
+
+    if len(neighbour_ips) == 1:
+        # We can surely pop since there is only one public IP towards the candidate router
+        (_, cand_peering_ip, _) = neighbour_ips.pop()
+        return cand_peering_ip
+    else:
+        for _, cand_peering_ip, _ in neighbour_ips:
+            # Check which of the peerings is up
+            if _is_vendor_neighbour_bgp_up(candidate_device, config, cand_peering_ip.ip):
+                return cand_peering_ip
+
+    # In any case, return None as a protection
+    return None
 
 
 bogons = CymruBogons()
