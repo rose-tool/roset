@@ -24,14 +24,14 @@ class NetworkScenarioManager:
             device = self._build_device(net_scenario, node)
 
             # Do not configure interfaces on candidate
-            if isinstance(node, BgpRouter) and node.relationship is None:
+            if isinstance(node, BgpRouter) and node.candidate:
                 continue
 
             vlans = set()
             for iface_idx, neighbours in node.neighbours.items():
                 with device.lab.fs.open(f"{device.name}.startup", 'a+') as startup:
                     for neighbour in neighbours.values():
-                        for v_ips in neighbour.local_ips.values():
+                        for v_ips in neighbour.get_local_ips().values():
                             for (vlan, ip, _) in v_ips:
                                 iface_name = f"eth{iface_idx}" if vlan is None else f"eth{iface_idx}.{vlan}"
 
@@ -57,7 +57,8 @@ class NetworkScenarioManager:
             elif isinstance(node, Client):
                 device.add_meta('image', 'kathara/base')
 
-            if isinstance(node, BgpRouter) and node.relationship is None:
+            # Do not configure IPv6 on candidate
+            if isinstance(node, BgpRouter) and node.candidate:
                 device.add_meta('ipv6', False)
             else:
                 device.add_meta('ipv6', True)
@@ -89,10 +90,10 @@ class NetworkScenarioManager:
         Kathara.get_instance().deploy_machine(candidate_device)
         logging.info(f"Waiting candidate device `{candidate_device.name}` startup...")
 
-        # Ask to print something in order to wait the startup
+        # Wait the startup
         exec_output = Kathara.get_instance().exec(
             machine_name=candidate_device.name,
-            command=shlex.split(vendor_config.command_list_file()),
+            command=shlex.split(vendor_config.command_healthcheck()),
             lab_name=net_scenario.name
         )
 
@@ -103,7 +104,7 @@ class NetworkScenarioManager:
             try:
                 (stdout, _) = next(exec_output)
                 stdout = stdout.decode('utf-8')
-                is_running = "Waiting" not in stdout
+                is_running = vendor_config.check_health(stdout)
             except StopIteration:
                 pass
 

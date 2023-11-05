@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 from abc import ABC, abstractmethod
 
@@ -5,7 +6,7 @@ from .commands_mixin import CommandsMixin
 from .configuration_applier import ConfigurationApplier
 from .vendor_format_parser import VendorFormatParser
 from ..exceptions import ConfigError
-from ...batfish.batfish_configuration import BatfishConfiguration
+from ...configuration.batfish.batfish_configuration import BatfishConfiguration
 from ...model.bgp_session import BgpSession
 
 

@@ -46,4 +46,4 @@ class BgpPeering:
         self.group: str | None = group
 
     def __repr__(self) -> str:
-        return f"{self.group}: local={self.local_ip} => remote={self.remote_ip})"
+        return f"{self.group}: local={self.local_ip} => remote={self.remote_ip}"

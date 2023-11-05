@@ -5,6 +5,7 @@ import time
 
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
+from Kathara.model.Machine import Machine
 
 from .action_3 import Action3
 from .action_4 import Action4
@@ -12,7 +13,7 @@ from ..foundation.actions.action import Action
 from ..foundation.actions.action_result import ActionResult
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..foundation.exceptions import BgpRuntimeError, ConfigValidationError
-from ..model.topology import Topology
+from ..model.topology import Topology, Client, BgpRouter
 
 CONVERGENCE_ATTEMPTS = 100
 
@@ -31,7 +32,7 @@ class ActionManager:
     def start(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> list[ActionResult]:
         self._check_configuration_validity(config, net_scenario)
 
-        converged = self._wait_convergence(config, net_scenario)
+        converged = self._wait_convergence(topology, net_scenario)
         if not converged:
             raise BgpRuntimeError("BGP did not converge")
 
@@ -89,26 +90,27 @@ class ActionManager:
         if not config.check_configuration_validity(output):
             raise ConfigValidationError(output)
 
-    def _wait_convergence(self, config: VendorConfiguration, net_scenario: Lab) -> bool:
+    def _wait_convergence(self, topology: Topology, net_scenario: Lab) -> bool:
         logging.info("Checking routers convergence...")
 
-        selected_devices = set(
-            filter(
-                lambda x: '_client' not in x.name and x.name != f"as{config.get_local_as()}",
-                net_scenario.machines.values()
+        selected_nodes = dict(
+            map(
+                lambda x: (x[1].name, x[1]),
+                filter(lambda x: type(x[1]) != Client and not x[1].candidate, topology.all())
             )
         )
+        selected_devices = set(x for x in net_scenario.machines.values() if x.name in selected_nodes)
 
         attempts = 0
         counter = 0
         while not counter >= 3:
-            time.sleep(2)
+            time.sleep(3)
 
             if attempts >= CONVERGENCE_ATTEMPTS:
                 logging.error(f"BGP is not converging: {CONVERGENCE_ATTEMPTS} attempts. Aborting.")
                 return False
 
-            converged_routers = self._bgp_established(selected_devices)
+            converged_routers = self._bgp_established(selected_nodes, selected_devices)
             if all(converged_routers):
                 counter += 1
             else:
@@ -122,16 +124,18 @@ class ActionManager:
 
         return True
 
-    def _bgp_established(self, selected_devices: set) -> list:
+    def _bgp_established(self, selected_nodes: dict[str, BgpRouter], selected_devices: set[Machine]) -> list:
         summaries = self._get_routers_summary(selected_devices)
 
         converged_routers = []
 
-        for device, summary in summaries.items():
+        for device_name, summary in summaries.items():
             has_ipv4 = False
             flag_ipv4 = True
+            routes_ipv4 = True
             has_ipv6 = False
             flag_ipv6 = True
+            routes_ipv6 = True
 
             if not summary:
                 converged_routers.append(False)
@@ -141,18 +145,34 @@ class ActionManager:
                 has_ipv4 = True
                 flag_ipv4 = summary['ipv4Unicast']['failedPeers'] == 0
 
+                # Check if the providers received the routes
+                if selected_nodes[device_name].is_provider():
+                    routes_ipv4 = all([x['pfxRcd'] > 0 for x in summary['ipv4Unicast']['peers'].values()])
+                else:
+                    routes_ipv4 = True
+
             if 'ipv6Unicast' in summary:
                 has_ipv6 = True
                 flag_ipv6 = summary['ipv6Unicast']['failedPeers'] == 0
 
-            inc = flag_ipv4 if has_ipv4 else True
-            inc = flag_ipv6 and inc if has_ipv6 else inc
+                # Check if the providers received the routes
+                if selected_nodes[device_name].is_provider():
+                    routes_ipv6 = all([x['pfxRcd'] > 0 for x in summary['ipv6Unicast']['peers'].values()])
+                else:
+                    routes_ipv6 = True
+
+            logging.debug(f"device={device_name}, "
+                          f"ipv4_ready={flag_ipv4}, routes_ipv4={routes_ipv4}, "
+                          f"ipv6_ready={flag_ipv6}, routes_ipv6={routes_ipv6}")
+
+            inc = flag_ipv4 and routes_ipv4 if has_ipv4 else True
+            inc = flag_ipv6 and routes_ipv6 and inc if has_ipv6 else inc
             converged_routers.append(inc)
 
         return converged_routers
 
     @staticmethod
-    def _get_routers_summary(selected_devices: set) -> dict:
+    def _get_routers_summary(selected_devices: set[Machine]) -> dict:
         summaries = {}
 
         for device in selected_devices:

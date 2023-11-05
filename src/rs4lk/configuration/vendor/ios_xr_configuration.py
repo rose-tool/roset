@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import tempfile
-from subprocess import Popen, PIPE
+import re
 from typing import Any
 
 from Kathara.model.Lab import Lab
@@ -18,22 +18,24 @@ class IosXrConfiguration(VendorConfiguration):
     __slots__ = ['_cisco_parser']
 
     CONFIG_FILE_PATH: str = "disk0:/startup-config.cfg"
-    FS_SYSCTL: int = 64000
+
+    CLI_COMMAND: str = "/pkg/bin/xr_cli \"{command}\""
+    ZTP_CLI_COMMAND: str = "/bin/bash -c 'source /pkg/bin/ztp_helper.sh; xrcmd \"{command}\"'"
+    ZTP_APPLY_COMMAND: str = "/bin/bash -c 'source /pkg/bin/ztp_helper.sh; xrapply {file}'"
+    ZTP_DIFF_APPLY_COMMAND: str = "/bin/bash -c 'source /pkg/bin/ztp_helper.sh; xrapply_string \"{command}\"'"
 
     def _init(self) -> None:
         # Cisco Parser needs a txt file, create a temporary one and read it back
         (fd, temp_file_path) = tempfile.mkstemp(suffix='.txt')
         with open(temp_file_path, 'w') as temp_file:
             temp_file.writelines(self._lines)
-
         self._cisco_parser: ConfigParser = ConfigParser(method="file", content=temp_file_path)
+
         self._parse_ipv6_interface_addresses()
         self._parse_ipv6_sessions()
         self._remap_interfaces()
 
         os.remove(temp_file_path)
-
-        self._check_host_sysctls()
 
     def _parse_ipv6_interface_addresses(self) -> None:
         logging.info("Inferring IPv6 interface addresses.")
@@ -133,8 +135,8 @@ class IosXrConfiguration(VendorConfiguration):
 
         self.iface_to_iface_idx[iface['Interface']['interface']] = last_iface_idx[0]
 
-        logging.info(f"Interface `{iface['Interface']['vendor_interface']}` "
-                     f"remapped into `{iface['Interface']['interface']}`.")
+        logging.debug(f"Interface `{iface['Interface']['vendor_interface']}` "
+                      f"remapped into `{iface['Interface']['interface']}`.")
 
     def _on_load_complete(self) -> None:
         for session in self.bgp_sessions.values():
@@ -163,54 +165,100 @@ class IosXrConfiguration(VendorConfiguration):
             env_ifaces.append(f"linux:eth{iface_idx},xr_name={iface_name}")
 
         candidate_router.add_meta('env', "XR_INTERFACES=%s" % ";".join(env_ifaces))
+        candidate_router.add_meta('env', "XR_ZTP_ENABLE=0")
 
+        all_lines = "\n".join(self.get_lines())
+        candidate_router.create_file_from_string(all_lines, self.CONFIG_FILE_PATH)
+
+        # Apply custom configuration after the container has started
+        # We use CLI_COMMAND instead of ZTP since ZTP is still not initialized at this point.
+        check_cmd_1 = (self.CLI_COMMAND.format(command="show run") +
+                       " | egrep -e 'No configuration change' -e 'No such file or directory'")
+        check_cmd_2 = (self.CLI_COMMAND.format(command="sh ip interface GigabitEthernet0/0/0/0") +
+                       " | egrep -e 'ipv4 protocol is Down'")
+        check_cmd_3 = (self.CLI_COMMAND.format(command="sh ipv6 interface GigabitEthernet0/0/0/0") +
+                       " | egrep -e 'ipv6 protocol is Down'")
+        net_scenario.create_file_from_list(
+            [
+                # Wait that xrd-startup finishes
+                "pgrep xrd-startup; while [[ $? -eq 0 ]]; do sleep 3; pgrep xrd-startup; done",
+                # Check when the control plane is ready
+                check_cmd_1,
+                f"while [[ $? -eq 0 ]]; do sleep 3; {check_cmd_1}; done",
+                # Check when the IPv4 stack goes up
+                check_cmd_2,
+                f"while [[ $? -eq 0 ]]; do sleep 3; {check_cmd_2}; done",
+                # Check when the IPv6 stack goes up
+                check_cmd_3,
+                f"while [[ $? -eq 0 ]]; do sleep 3; {check_cmd_3}; done",
+                # Kill ZTP (it removes the IPs from the interfaces)!
+                "source /pkg/bin/ztp_helper.sh; ztp_disable; ztp_kill_all; killall -9 pyztp2",
+                # Finally apply the configuration
+                self.ZTP_APPLY_COMMAND.format(file=self.CONFIG_FILE_PATH)
+            ],
+            f"{candidate_name}.startup"
+        )
+
+    def get_lines(self) -> list[str]:
         all_lines = "".join(self._lines)
-        # Start replacing in reverse order to avoid replacing a substring.
-        for iface_name, iface in reversed(self.interfaces.items()):
+        for iface_name, iface in self.interfaces.items():
             if '/' not in iface_name:
                 continue
 
             if iface['Interface']['vendor_interface'] == iface['Interface']['interface']:
                 continue
 
-            all_lines = all_lines.replace(iface['Interface']['vendor_interface'], iface['Interface']['interface'])
+            all_lines = re.sub(
+                rf"\b{iface['Interface']['vendor_interface']}\b",
+                iface['Interface']['interface'],
+                all_lines
+            )
 
-        candidate_router.create_file_from_string(all_lines, self.CONFIG_FILE_PATH)
+        tmp_clean_lines = []
+        for line in all_lines.split("\n"):
+            # Remove easy unsupported (by XRd container) configurations
+            if ('clock' in line or 'telnet' in line or 'snmp-server' in line or 'aaa' in line or
+                    'service-policy type control subscriber' in line or 'pppoe enable' in line or
+                    'transceiver permit' in line or
+                    ('track ' in line and len(line) - len(line.lstrip(' ')) > 0)):  # track but not at root level
+                continue
 
-        # Apply custom configuration after the container has started
-        check_cmd_1 = "/pkg/bin/xr_cli \"show run\" | egrep -e 'No configuration change' -e 'No such file or directory'"
-        check_cmd_2 = "/pkg/bin/xr_cli \"sh ip interface GigabitEthernet0/0/0/0\" | egrep -e 'ipv4 protocol is Down'"
-        check_cmd_3 = "/pkg/bin/xr_cli \"sh ipv6 interface GigabitEthernet0/0/0/0\" | egrep -e 'ipv6 protocol is Down'"
-        cfg_cmd = f"/pkg/bin/xr_cli \"copy {self.CONFIG_FILE_PATH} running-config\" | egrep -e 'Updated Commit'"
-        net_scenario.create_file_from_list(
-            [
-                # Wait that xrd-startup finishes
-                "pgrep xrd-startup; while [[ $? -eq 0 ]]; do sleep 1; pgrep xrd-startup; done",
-                # Check when the control plane is ready
-                check_cmd_1,
-                f"while [[ $? -eq 0 ]]; do sleep 1; {check_cmd_1}; done",
-                # Check when the IPv4 stack goes up
-                check_cmd_2,
-                f"while [[ $? -eq 0 ]]; do sleep 1; {check_cmd_2}; done",
-                # Check when the IPv6 stack goes up
-                check_cmd_3,
-                f"while [[ $? -eq 0 ]]; do sleep 1; {check_cmd_3}; done",
-                # Finally apply the configuration
-                cfg_cmd,
-                f"while [[ $? -ne 0 ]]; do sleep 1; {cfg_cmd}; done",
-            ],
-            f"{candidate_name}.startup"
-        )
+            tmp_clean_lines.append(line)
 
-    def _check_host_sysctls(self) -> None:
-        for sysctl in ["fs.inotify.max_user_instances", "fs.inotify.max_user_watches"]:
-            process = Popen(f"sysctl -n {sysctl}", stdout=PIPE, shell=True)
-            output, _ = process.communicate()
-            process.terminate()
+        # Remove multi-line unsupported (by XRd container) configurations
+        start_skipping = 0
+        clean_lines = []
+        for line in tmp_clean_lines:
+            if start_skipping > 0:
+                start_skipping = len(line) - len(line.lstrip(' '))
 
-            num = int(output.decode('utf-8').strip())
-            if num < self.FS_SYSCTL:
-                logging.warning(f"Increase `{sysctl}` value to {self.FS_SYSCTL}!")
+                continue
+            elif ('line console' in line or 'ntp' in line or 'dynamic-template' in line or 'l2vpn' in line or
+                  'ipsla' in line or 'subscriber' in line or 'pppoe' in line or
+                  'class-map type control subscriber' in line or 'policy-map type control subscriber' in line or
+                  'monitor-session capture ethernet' in line or
+                  ('interface' in line and ('/' not in line or 'PTP' in line)) or  # Clean virtual interfaces
+                  ('interface' in line and ('GigabitEthernet0/0/0' not in line)) or  # Clean non-parsed interfaces
+                  ('track ' in line and len(line) - len(line.lstrip(' ')) == 0)):  # track but at root level
+                start_skipping += 1
+                continue
+
+            clean_lines.append(line)
+
+        # Remove shutdown interfaces (if any)
+        lines_to_remove = []
+        for n, line in enumerate(clean_lines):
+            if 'shutdown' in line:
+                lines_to_remove.append(n - 1)
+                lines_to_remove.append(n)
+                lines_to_remove.append(n + 1)
+
+        final_clean_lines = []
+        for n, line in enumerate(clean_lines):
+            if n not in lines_to_remove:
+                final_clean_lines.append(line)
+
+        return [x for x in final_clean_lines if 'monitor-session capture ethernet' not in x]
 
     @staticmethod
     def _parse_iface_format(x) -> (str, int, int, int, int | None):
@@ -233,35 +281,61 @@ class IosXrConfiguration(VendorConfiguration):
         return name
 
     # CommandsMixin
+    def command_healthcheck(self) -> str:
+        command = "pgrep xrd-startup"
+        logging.debug(f"[{__class__}] command_healthcheck: `{command}`")
+        return command
+
     def command_list_file(self) -> str:
-        return f"ls {self.CONFIG_FILE_PATH}"
+        command = f"ls {self.CONFIG_FILE_PATH}"
+        logging.debug(f"[{__class__}] command_list_file: `{command}`")
+        return command
 
     def command_test_configuration(self) -> str:
-        return "configure; commit check; exit"
+        # Use non-ZTP command because ZTP is still not ready here.
+        command = self.CLI_COMMAND.format(command="show configuration failed")
+        logging.debug(f"[{__class__}] command_test_configuration: `{command}`")
+        return command
 
     def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
-        return f"show route receive-protocol bgp {str(neighbour_ip)} all | display json"
+        ip_str = "ipv6 unicast" if neighbour_ip.version == 6 else ""
+        command = self.ZTP_CLI_COMMAND.format(command=f"show bgp {ip_str} neighbors {str(neighbour_ip)} routes")
+        logging.debug(f"[{__class__}] command_get_neighbour_bgp_networks: `{command}`")
+        return command
 
     def command_set_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
-        unit_name = IosXrConfiguration._build_iface_name("ge", 0, 0, num, 0)
-        inet_str = "inet" if ip.version == 4 else "inet6"
+        iface_name = IosXrConfiguration._build_iface_name("GigabitEthernet0", 0, 0, num, None)
+        ip_str = f"ipv{ip.version}"
 
-        return f"configure; set interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+        iface_configure = [f"interface {iface_name}", f" {ip_str} address {str(ip)}", "!"]
+        command = self.ZTP_DIFF_APPLY_COMMAND.format(command="\\n".join(iface_configure))
+        logging.info(f"[{__name__}] command_set_iface_ip: `{command}`")
+        return command
 
     def command_unset_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
-        unit_name = IosXrConfiguration._build_iface_name("ge", 0, 0, num, 0)
-        inet_str = "inet" if ip.version == 4 else "inet6"
+        iface_name = IosXrConfiguration._build_iface_name("GigabitEthernet0", 0, 0, num, None)
+        ip_str = f"ipv{ip.version}"
 
-        return f"configure; delete interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+        iface_configure = [f"interface {iface_name}", f" no {ip_str} address {str(ip)}", "!"]
+        command = self.ZTP_DIFF_APPLY_COMMAND.format(command="\\n".join(iface_configure))
+        logging.info(f"[{__class__}] command_unset_iface_ip: `{command}`")
+        return command
 
     # FormatParserMixin
+    def check_health(self, result: str) -> bool:
+        return result.strip() != ""
+
     def check_file_existence(self, result: str) -> bool:
         return "No such file or directory" not in result
 
     def check_configuration_validity(self, result: str) -> bool:
-        return "configuration check succeeds" in result
+        # Remove empty lines and remove first line which is the command executed
+        lines = [x for x in result.split("\n") if x][1:]
+        # If it is empty, means that there are no errors
+        return not lines
 
     def parse_bgp_routes(self, result: Any) -> set:
+        # TODO: Parse Cisco
         output = json.loads(result)
 
         bgp_routes = set()

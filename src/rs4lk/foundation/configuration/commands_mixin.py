@@ -4,6 +4,10 @@ from abc import ABC, abstractmethod
 
 class CommandsMixin(ABC):
     @abstractmethod
+    def command_healthcheck(self) -> str:
+        raise NotImplementedError("You must implement `command_healthcheck` method.")
+
+    @abstractmethod
     def command_list_file(self) -> str:
         raise NotImplementedError("You must implement `command_list_file` method.")
 

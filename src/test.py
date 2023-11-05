@@ -7,11 +7,11 @@ import sys
 from Kathara.setting.Setting import Setting
 
 from rs4lk.actions.action_manager import ActionManager
-from rs4lk.batfish.batfish_configuration import BatfishConfiguration
 from rs4lk.colored_logging import set_logging
+from rs4lk.configuration.batfish.batfish_configuration import BatfishConfiguration
 from rs4lk.configuration.bgp_configuration import BgpConfiguration
-from rs4lk.configuration.vendor_configuration_factory import VendorConfigurationFactory
 from rs4lk.foundation.actions.action_result import WARNING
+from rs4lk.foundation.configuration.vendor_configuration_factory import VendorConfigurationFactory
 from rs4lk.foundation.exceptions import BgpRuntimeError, ConfigValidationError
 from rs4lk.globals import DEFAULT_RIB, DEFAULT_BATFISH_URL
 from rs4lk.model.topology import Topology
@@ -54,15 +54,13 @@ def main(args):
 
     vendor_config.apply_to_network_scenario(net_scenario)
 
-    logging.info("Deploying network scenario...")
-    net_scenario_manager.start_candidate_device(net_scenario, vendor_config)
-    net_scenario_manager.start_other_devices(net_scenario, vendor_config)
-    logging.success("Network scenario deployed successfully.")
+    # logging.info("Deploying network scenario...")
+    # net_scenario_manager.start_candidate_device(net_scenario, vendor_config)
+    # net_scenario_manager.start_other_devices(net_scenario, vendor_config)
+    # logging.success("Network scenario deployed successfully.")
 
-    exit()
-
-    for machine in net_scenario.machines.values():
-        connect(machine)
+    # for machine in net_scenario.machines.values():
+    #     connect(machine)
 
     all_passed = False
     try:
@@ -80,8 +78,9 @@ def main(args):
         pass
 
     table_dump.close()
+    batfish_config.cleanup()
 
-    net_scenario_manager.undeploy(net_scenario)
+    # net_scenario_manager.undeploy(net_scenario)
 
     # 0=Configuration is compliant, 1=Configuration is not compliant
     exit(int(all_passed))

@@ -142,6 +142,12 @@ class Action3(Action):
                     action_result.add_result(
                         WARNING, f"No networks advertised by candidate to AS{provider.identifier} on IPv{v}."
                     )
+
+                    self._cleanup_provider_ips(
+                        provider_device, provider_client_iface_idx, provider_ip,
+                        provider_client, provider_client_ip, default_net
+                    )
+
                     continue
 
                 # Select one network
@@ -153,25 +159,34 @@ class Action3(Action):
                     if (2 ** (addr_len - candidate_net_rand.prefixlen)) - 2 > 5:
                         candidate_net = candidate_net_rand
                         break
+                    else:
+                        logging.warning(f"Selected network {candidate_net_rand} has less than 5 IP addresses.")
 
                 if candidate_net is None:
                     logging.warning(f"No viable IPv{v} networks on candidate AS, skipping...")
                     action_result.add_result(WARNING, f"No viable IPv{v} networks on candidate AS.")
+
+                    self._cleanup_provider_ips(
+                        provider_device, provider_client_iface_idx, provider_ip,
+                        provider_client, provider_client_ip, default_net
+                    )
+
                     continue
 
                 logging.info(f"Selected network {candidate_net} on candidate AS.")
 
                 candidate_client_ip = self._get_non_overlapping_address(candidate_net, candidate_assigned_ips)
-                candidate_ip = self._get_non_overlapping_address(candidate_net,
-                                                                 candidate_assigned_ips.union({candidate_client_ip}))
+                candidate_ip = self._get_non_overlapping_address(
+                    candidate_net,
+                    candidate_assigned_ips.union({candidate_client_ip})
+                )
 
                 # Set the interface IP on the candidate client
                 self._ip_addr_add(candidate_client, 0, candidate_client_ip)
                 self._ip_route_add(candidate_client, default_net, candidate_ip.ip, 0)
 
                 # Set the interface IP on the candidate
-                self._vendor_ip_add(candidate_device, config,
-                                    candidate_client_iface_idx, candidate_ip)
+                self._vendor_ip_add(candidate_device, config, candidate_client_iface_idx, candidate_ip)
 
                 logging.info("Waiting 20s before performing check...")
                 time.sleep(20)
@@ -187,9 +202,10 @@ class Action3(Action):
                           f"SrcIP={spoofed_src_ip} -> DstIP={provider_client_addr}."
                 action_result.add_result(SUCCESS if result else ERROR, msg)
 
-                self._ip_addr_del(provider_device, provider_client_iface_idx, provider_ip)
-                self._ip_addr_del(provider_client, 0, provider_client_ip)
-                self._ip_route_del(provider_client, default_net, provider_ip.ip, 0)
+                self._cleanup_provider_ips(
+                    provider_device, provider_client_iface_idx, provider_ip,
+                    provider_client, provider_client_ip, default_net
+                )
 
                 self._vendor_ip_del(candidate_device, config,
                                     candidate_client_iface_idx, candidate_ip)
@@ -201,6 +217,16 @@ class Action3(Action):
             self._ip_route_del(internet_router_client, default_net, internet_router_ip.ip, 0)
 
         return action_result
+
+    def _cleanup_provider_ips(self, provider_device: Machine,
+                              provider_client_iface_idx: int,
+                              provider_ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface,
+                              provider_client: Machine,
+                              provider_client_ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface,
+                              default_net: ipaddress.IPv4Network | ipaddress.IPv6Network) -> None:
+        self._ip_addr_del(provider_device, provider_client_iface_idx, provider_ip)
+        self._ip_addr_del(provider_client, 0, provider_client_ip)
+        self._ip_route_del(provider_client, default_net, provider_ip.ip, 0)
 
     @staticmethod
     def _get_non_overlapping_address(network: ipaddress.IPv4Network | ipaddress.IPv6Network,

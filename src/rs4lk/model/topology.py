@@ -2,7 +2,7 @@ import ipaddress
 import logging
 import random
 from collections import OrderedDict
-from typing import Any, Iterable
+from typing import Any
 
 from sortedcontainers import SortedDict
 
@@ -42,7 +42,7 @@ class Node:
 
         return iface_idx if new_idx else None
 
-    def connect_to(self, neighbour: 'Node', iface_idx: int | None = None) -> int | None:
+    def connect_to_neighbour(self, neighbour: 'Node', iface_idx: int | None = None) -> int | None:
         new_idx = False
         if iface_idx is None:
             iface_idx = max(self.neighbours.keys()) + 1 if self.neighbours else 0
@@ -57,9 +57,17 @@ class Node:
         if iface_idx not in self.neighbours:
             self.neighbours[iface_idx] = {}
 
-        self.neighbours[iface_idx][neighbour.name] = Neighbour(iface_idx, cd, neighbour)
+        self.neighbours[iface_idx][neighbour.name] = Neighbour(self, iface_idx, cd, neighbour)
 
         return iface_idx if new_idx else None
+
+    def connect_to_neighbour_by_cd(self, neighbour: 'Node', cd: str, iface_idx: int | None = None) -> int | None:
+        new_idx = self.connect_interface_to_cd(cd, iface_idx)
+
+        neighbour_iface_idx = iface_idx if new_idx is None else new_idx
+        self.connect_to_neighbour(neighbour, neighbour_iface_idx)
+
+        return new_idx if new_idx else None
 
     def add_local_iface_ip(self, iface_idx: int,
                            neighbour: 'Node',
@@ -158,9 +166,10 @@ class BgpRouter(Node):
 
 
 class Neighbour:
-    __slots__ = ['idx', 'cd', 'neighbour', 'local_ips']
+    __slots__ = ['src', 'idx', 'cd', 'neighbour', 'local_ips']
 
-    def __init__(self, idx: int, cd: str, neighbour: Node | None = None) -> None:
+    def __init__(self, src: Node, idx: int, cd: str, neighbour: Node | None = None) -> None:
+        self.src: Node = src
         self.idx: int = idx
         self.cd: str = cd
         self.neighbour: Node = neighbour
@@ -171,18 +180,21 @@ class Neighbour:
                      is_public: bool = False) -> None:
         self.local_ips[addr.version].append((vlan, addr, is_public))
 
+    def get_local_ips(self, is_public: bool | None = None) -> dict[int, list]:
+        if is_public is None:
+            return self.local_ips
+
+        return {4: [x for x in self.local_ips[4] if x[2] == is_public],
+                6: [x for x in self.local_ips[6] if x[2] == is_public]}
+
     def get_neighbours_ips(self, is_public: bool | None = None) -> dict[int, list]:
         if not self.neighbour:
             return {4: [], 6: []}
 
         for neighbours in self.neighbour.neighbours.values():
             for neighbour_iface in neighbours.values():
-                if neighbour_iface.cd == self.cd:
-                    ips = neighbour_iface.local_ips
-                    if is_public is None:
-                        return ips
-
-                    return {4: [x for x in ips[4] if x[2] == is_public], 6: [x for x in ips[6] if x[2] == is_public]}
+                if neighbour_iface.cd == self.cd and self.src.identifier == neighbour_iface.neighbour.identifier:
+                    return neighbour_iface.get_local_ips(is_public)
 
         return {4: [], 6: []}
 
@@ -211,8 +223,11 @@ class Topology:
         candidate_router = BgpRouter(candidate_local_as, None)
         candidate_router.candidate = True
         # Layout all the declared interfaces inside the device
-        for iface_idx in self._vendor_config.iface_to_iface_idx.values():
-            cd = CollisionDomain.get_instance().get(candidate_local_as, f"as{candidate_local_as}_{iface_idx}")
+        for iface_idx in set(self._vendor_config.iface_to_iface_idx.values()):
+            cd = CollisionDomain.get_instance().get(
+                str(candidate_local_as),
+                f"as{candidate_local_as}_{iface_idx}"
+            )
             candidate_router.connect_interface_to_cd(cd, iface_idx)
         self._nodes[candidate_local_as] = candidate_router
 
@@ -223,15 +238,14 @@ class Topology:
                 self._nodes[as_num] = neighbour_router
 
                 cd = candidate_router.get_cd_by_iface_idx(session.iface_idx)
-                candidate_router.connect_to(neighbour_router, session.iface_idx)
-                iface_idx = neighbour_router.connect_interface_to_cd(cd)
-                neighbour_router.connect_to(candidate_router, iface_idx)
+                candidate_router.connect_to_neighbour(neighbour_router, session.iface_idx)
+                neighbour_router.connect_to_neighbour_by_cd(candidate_router, cd)
 
                 for peering in session.peerings:
                     if peering.local_ip is None:
-                        raise TopologyError(f"Direct peering with AS{as_num} does not declare a local IP!")
+                        raise TopologyError(f"Direct peering with AS{as_num} does not declare a local IP")
                     if type(peering.local_ip) not in [ipaddress.IPv4Interface, ipaddress.IPv6Interface]:
-                        raise TopologyError(f"Direct peering with AS{as_num} does not declare a local IP interface!")
+                        raise TopologyError(f"Direct peering with AS{as_num} does not declare a local IP interface")
 
                     r_iface_ip = ipaddress.ip_interface(f"{peering.remote_ip}/{peering.local_ip.network.prefixlen}")
                     neighbour_router.add_local_iface_ip(
@@ -246,7 +260,7 @@ class Topology:
             if i in candidate_router.neighbours:
                 continue
 
-            cd = CollisionDomain.get_instance().get(candidate_local_as, f"dummy_net_{i}")
+            cd = CollisionDomain.get_instance().get(str(candidate_local_as), f"dummy_net_{i}")
             candidate_router.connect_interface_to_cd(cd, i)
 
         # Get all providers
@@ -265,8 +279,8 @@ class Topology:
                 self._nodes[as_num] = neighbour_router
 
                 for provider_router in self._get_connected_providers_by_as_num(providers_ases, as_num):
-                    neighbour_iface_idx = neighbour_router.connect_to(provider_router)
-                    provider_iface_idx = provider_router.connect_to(neighbour_router)
+                    neighbour_iface_idx = neighbour_router.connect_to_neighbour(provider_router)
+                    provider_iface_idx = provider_router.connect_to_neighbour(neighbour_router)
 
                     # Assign new peering subnet to provider
                     peering_network_v4 = next(peering_networks_v4)
@@ -319,8 +333,8 @@ class Topology:
         internet_router.add_announced_network(ipaddress.IPv6Network("0::0/0"))
 
         internet_router_client = Client(1)
-        internet_router.connect_to(internet_router_client)
-        internet_router_client.connect_to(internet_router)
+        internet_router.connect_to_neighbour(internet_router_client)
+        internet_router_client.connect_to_neighbour(internet_router)
 
         # Final additions to the provider
         for provider_router in providers_routers:
@@ -340,7 +354,7 @@ class Topology:
             utils.aggregate_v4_6_networks(provider_router.local_networks)
 
             # Connect each provider to the "Internet"
-            internet_iface_idx = internet_router.connect_to(provider_router)
+            internet_iface_idx = internet_router.connect_to_neighbour(provider_router)
             internet_router.add_local_iface_ip(
                 internet_iface_idx,
                 provider_router,
@@ -353,7 +367,7 @@ class Topology:
                 ipaddress.ip_interface(f"{next(peering_ips_v6)}/{peering_prefixlen_v6}"),
                 is_public=True
             )
-            provider_iface_idx = provider_router.connect_to(internet_router)
+            provider_iface_idx = provider_router.connect_to_neighbour(internet_router)
             provider_router.add_local_iface_ip(
                 provider_iface_idx,
                 internet_router,
@@ -369,8 +383,8 @@ class Topology:
 
             # Add provider client
             neighbour_client = Client(provider_router.identifier)
-            neighbour_client.connect_to(provider_router)
-            provider_router.connect_to(neighbour_client)
+            neighbour_client.connect_to_neighbour(provider_router)
+            provider_router.connect_to_neighbour(neighbour_client)
 
         # Finally, add a client to the candidate AS (with an unused interface)
         candidate_router_client = Client(candidate_local_as)
@@ -381,12 +395,11 @@ class Topology:
                 break
 
         if empty_iface_idx == -1:
-            raise TopologyError(f"No empty interface available to connect `{candidate_router.name}")
+            raise TopologyError(f"No empty interface available to connect `{candidate_router.name}`")
 
         cd = candidate_router.get_cd_by_iface_idx(empty_iface_idx)
-        candidate_router.connect_to(candidate_router_client, empty_iface_idx)
-        iface_idx = candidate_router_client.connect_interface_to_cd(cd)
-        candidate_router_client.connect_to(candidate_router, iface_idx)
+        candidate_router.connect_to_neighbour(candidate_router_client, empty_iface_idx)
+        candidate_router_client.connect_to_neighbour_by_cd(candidate_router, cd)
 
     def _infer_bgp_relationships(self) -> None:
         logging.info("Inferring BGP relationships...")
@@ -440,7 +453,7 @@ class Topology:
         rib_entries = self._table_dump.get_by_as_origin(as_num)
         return set(map(lambda x: x.network, rib_entries))
 
-    def all(self) -> Iterable:
+    def all(self) -> Any:
         return self._nodes.items()
 
     def get(self, identifier: int) -> Node:

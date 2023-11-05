@@ -4,10 +4,10 @@ from ..foundation.exceptions import InstantiationError
 class CollisionDomain:
     __slots__ = ['_current_collision_domain', '_collision_domain_assignments']
 
-    __instance: 'rs4lk.network_scenario.collision_domain.CollisionDomain' = None
+    __instance: 'CollisionDomain' = None
 
     @staticmethod
-    def get_instance() -> 'rs4lk.network_scenario.collision_domain.CollisionDomain':
+    def get_instance() -> 'CollisionDomain':
         if CollisionDomain.__instance is None:
             CollisionDomain()
 

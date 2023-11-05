@@ -6,11 +6,12 @@ import tempfile
 
 from pybatfish.client.session import Session
 
-from ..model.bgp_session import BgpSession, BgpPeering
+from ...model.bgp_session import BgpSession, BgpPeering
 
 
 class BatfishConfiguration:
-    __slots__ = ['path', 'name', 'session', '_format', '_interfaces', '_local_as', '_sessions']
+    __slots__ = ['path', 'name', 'session',
+                 '_format', '_interfaces', '_local_as', '_sessions', '_snapshot_tmp_path']
 
     def __init__(self, url: str, path: str) -> None:
         self.session: Session = Session(host=url)
@@ -24,6 +25,7 @@ class BatfishConfiguration:
         self._local_as: int = 0
         self._sessions: dict[int, BgpSession] | None = None
 
+        self._snapshot_tmp_path: str | None = None
         self._create_temporary_snapshot()
 
     def get_format(self) -> str:
@@ -80,17 +82,6 @@ class BatfishConfiguration:
     def set_bgp_sessions(self, sessions: dict[int, BgpSession]) -> None:
         self._sessions = sessions
 
-    @staticmethod
-    def is_valid_session(local_as: int, remote_as: int) -> bool:
-        if 64000 <= remote_as <= 131071:
-            logging.warning(f"Skipping session with AS{remote_as} is in reserved range 64000-131071.")
-            return False
-        if local_as == remote_as:
-            logging.warning(f"Skipping session with AS{remote_as} is a iBGP peering.")
-            return False
-
-        return True
-
     def get_interface_for_peering(self, bgp_peering: BgpPeering) \
             -> (str | None, ipaddress.IPv4Interface | ipaddress.IPv6Interface | None):
         selected_iface_name = None
@@ -115,6 +106,20 @@ class BatfishConfiguration:
 
         return None, None
 
+    def cleanup(self) -> None:
+        shutil.rmtree(self._snapshot_tmp_path, ignore_errors=True)
+
+    @staticmethod
+    def is_valid_session(local_as: int, remote_as: int) -> bool:
+        if 64000 <= remote_as <= 131071:
+            logging.warning(f"Skipping session with AS{remote_as} is in reserved range 64000-131071.")
+            return False
+        if local_as == remote_as:
+            logging.warning(f"Skipping session with AS{remote_as} is a iBGP peering.")
+            return False
+
+        return True
+
     def _create_temporary_snapshot(self) -> None:
         logging.info(f"Parsing configuration in file: `{self.path}`.")
 
@@ -123,6 +128,8 @@ class BatfishConfiguration:
             configs_dir = os.path.join(snapshot_dir, "configs")
             os.makedirs(configs_dir, exist_ok=True)
 
-            shutil.copyfile(self.path, os.path.join(configs_dir, "config_ut.cfg"))
+            shutil.copyfile(self.path, os.path.join(configs_dir, "candidate_config.cfg"))
 
             self.session.init_snapshot(snapshot_dir, name=self.name, overwrite=True)
+
+            self._snapshot_tmp_path = temp_dir

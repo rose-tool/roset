@@ -74,7 +74,10 @@ def get_neighbour_bgp_networks(device: Machine,
         pass
     bgp_nets = json.loads(bgp_nets)
 
-    return {ipaddress.ip_network(net) for net in bgp_nets['routes'].keys()}
+    return {
+        ipaddress.ip_network(net) for net, routes in bgp_nets['routes'].items()
+        if routes and any([x['valid'] and x['bestpath'] for x in routes])
+    }
 
 
 bogons = CymruBogons()

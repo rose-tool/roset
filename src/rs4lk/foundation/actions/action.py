@@ -9,7 +9,7 @@ from ...model.topology import Topology
 class Action(ABC):
     @abstractmethod
     def verify(self, config: VendorConfiguration,
-               topology: Topology, net_scenario: Lab) -> 'rs4lk.foundation.actions.ActionResult':
+               topology: Topology, net_scenario: Lab) -> 'ActionResult':
         raise NotImplementedError("You must implement `verify` method.")
 
     @abstractmethod

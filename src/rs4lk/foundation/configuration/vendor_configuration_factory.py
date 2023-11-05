@@ -1,9 +1,9 @@
 import logging
 
-from ..batfish.batfish_configuration import BatfishConfiguration
-from ..foundation.configuration.vendor_configuration import VendorConfiguration
-from ..foundation.exceptions import ConfigError
-from ..foundation.factory.Factory import Factory
+from .vendor_configuration import VendorConfiguration
+from ..exceptions import ConfigError
+from ..factory.Factory import Factory
+from ...configuration.batfish.batfish_configuration import BatfishConfiguration
 
 
 class VendorConfigurationFactory(Factory):
