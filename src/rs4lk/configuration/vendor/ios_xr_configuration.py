@@ -1,10 +1,8 @@
 import ipaddress
-import json
 import logging
 import os
-import tempfile
 import re
-from typing import Any
+import tempfile
 
 from Kathara.model.Lab import Lab
 from cisco_config_parser.cisco_config_parser import ConfigParser
@@ -372,7 +370,7 @@ class IosXrConfiguration(VendorConfiguration):
 
         return False
 
-    def parse_bgp_routes(self, result: Any) -> set:
+    def parse_bgp_routes(self, result: str) -> set:
         bgp_routes = set()
         for line in result.split("\n"):
             matches = self.PREFIX_REGEX.search(line)

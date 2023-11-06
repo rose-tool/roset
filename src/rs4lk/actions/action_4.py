@@ -85,7 +85,7 @@ class Action4(Action):
                 customer_neigh_ips = customer_neigh.get_neighbours_ips(is_public=True)
 
                 customer_peering_ip = action_utils.get_active_neighbour_peering_ip(
-                    candidate_device, config, customer_neigh_ips[v]
+                    candidate_device, config, customer_neigh_ips[v], vendor=True
                 )
                 if not customer_peering_ip:
                     logging.warning(f"No peering on IPv{v} between AS{customer.identifier} and candidate, skipping...")
@@ -113,7 +113,7 @@ class Action4(Action):
                     candidate_neigh_ips = candidate_neigh.get_neighbours_ips(is_public=True)
 
                     cand_peering_ip = action_utils.get_active_neighbour_peering_ip(
-                        candidate_device, config, candidate_neigh_ips[v]
+                        provider_device, config, candidate_neigh_ips[v], vendor=False
                     )
                     if not cand_peering_ip:
                         logging.warning(

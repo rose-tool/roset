@@ -90,22 +90,20 @@ class NetworkScenarioManager:
         Kathara.get_instance().deploy_machine(candidate_device)
         logging.info(f"Waiting candidate device `{candidate_device.name}` startup...")
 
-        # Wait the startup
-        exec_output = Kathara.get_instance().exec(
-            machine_name=candidate_device.name,
-            command=shlex.split(vendor_config.command_healthcheck()),
-            lab_name=net_scenario.name
-        )
-
         is_running = False
-        # Triggers the command.
         while not is_running:
-            time.sleep(5)
+            exec_output = Kathara.get_instance().exec(
+                machine_name=candidate_device.name,
+                command=shlex.split(vendor_config.command_healthcheck()),
+                lab_name=net_scenario.name
+            )
+
             try:
                 (stdout, _) = next(exec_output)
                 stdout = stdout.decode('utf-8')
                 is_running = vendor_config.check_health(stdout)
             except StopIteration:
+                time.sleep(5)
                 pass
 
     def start_other_devices(self, net_scenario: Lab, vendor_config: VendorConfiguration) -> None:

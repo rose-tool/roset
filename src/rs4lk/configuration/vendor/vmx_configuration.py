@@ -1,7 +1,6 @@
 import ipaddress
 import json
 import logging
-from typing import Any
 import re
 
 from Kathara.model.Lab import Lab
@@ -12,11 +11,11 @@ from ...model.bgp_session import BgpSession
 
 
 class VmxConfiguration(VendorConfiguration):
-    # Number of supported interfaces in vrnetlab
-    SUPPORTED_IFACES: int = 96
+    # Number of supported interfaces in vrnetlab VMX VM
+    SUPPORTED_IFACES: int = 50
 
-    CLI_CMD: str = (f"sshpass -p VR-netlab9 ssh -q "
-                    f"-oStrictHostKeyChecking=no -oConnectTimeout=1 vrnetlab@localhost \"{cmd}\"")
+    CLI_CMD: str = ("sshpass -p VR-netlab9 ssh -q "
+                    "-oStrictHostKeyChecking=no -oConnectTimeout=1 vrnetlab@localhost \"{command}\"")
 
     def _init(self) -> None:
         self._parse_ipv6_interface_addresses()
@@ -154,22 +153,23 @@ class VmxConfiguration(VendorConfiguration):
             if session.iface:
                 _, _, _, pic, unit = self._parse_iface_format(session.iface)
                 session.iface_idx = pic
-                session.vlan = unit
+                session.vlan = unit if unit > 0 else None
 
     def get_image(self) -> str:
         return 'vrnetlab/vr-vmx:18.2R1.9'
 
     def apply_to_network_scenario(self, net_scenario: Lab) -> None:
+        net_scenario.add_option('privileged_machines', True)
+
         candidate_name = f"as{self.get_local_as()}"
         candidate_router = net_scenario.get_machine(candidate_name)
         candidate_router.add_meta('image', self.get_image())
-        candidate_router.add_meta('vr', True)
 
-        all_lines = self.get_lines()
-        all_lines = self._clean_filters_on_loopback(all_lines)
-        all_lines = "\n".join(all_lines)
+        all_lines = "\n".join(self.get_lines())
+        candidate_router.create_file_from_string(all_lines, self.CONFIG_FILE_PATH)
 
-        # Start replacing in reverse order to avoid replacing a substring.
+    def get_lines(self) -> list[str]:
+        all_lines = "".join(self._lines)
         for iface_name, iface in self.interfaces.items():
             if '-' not in iface_name:
                 continue
@@ -202,12 +202,8 @@ class VmxConfiguration(VendorConfiguration):
                 all_lines
             )
 
-        candidate_router.create_file_from_string(all_lines, self.CONFIG_FILE_PATH)
-
-    def get_lines(self) -> list[str]:
         clean_lines = []
-
-        for line in self._lines:
+        for line in all_lines.split("\n"):
             # Clean system setup lines (these are handled by the vrnetlab)
             if 'set version' in line or 'set system' in line or 'set chassis' in line:
                 continue
@@ -232,6 +228,8 @@ class VmxConfiguration(VendorConfiguration):
                     continue
 
             clean_lines.append(line)
+
+        clean_lines = self._clean_filters_on_loopback(clean_lines)
 
         return clean_lines
 
@@ -272,22 +270,27 @@ class VmxConfiguration(VendorConfiguration):
 
     # CommandsMixin
     def command_healthcheck(self) -> str:
-        command = self.CLI_CMD.format(cmd="exit")
+        command = self.CLI_CMD.format(command="show system uptime")
         logging.debug(f"[{__class__}] command_healthcheck: `{command}`")
         return command
 
     def command_list_file(self) -> str:
-        command = self.CLI_CMD.format(cmd="file list startup-config.cfg")
+        command = self.CLI_CMD.format(command="file list startup-config.cfg")
         logging.debug(f"[{__class__}] command_list_file: `{command}`")
         return command
 
     def command_test_configuration(self) -> str:
-        command = self.CLI_CMD.format(cmd="configure; commit check; exit")
+        command = self.CLI_CMD.format(command="configure; commit check; exit")
         logging.debug(f"[{__class__}] command_test_configuration: `{command}`")
         return command
 
+    def command_get_neighbour_bgp(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+        command = self.CLI_CMD.format(command=f"show bgp neighbor {str(neighbour_ip)} | display json")
+        logging.debug(f"[{__class__}] command_get_neighbour_bgp: `{command}`")
+        return command
+
     def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
-        command = self.CLI_CMD.format(cmd=f"show route receive-protocol bgp {str(neighbour_ip)} all | display json")
+        command = self.CLI_CMD.format(command=f"show route receive-protocol bgp {str(neighbour_ip)} all | display json")
         logging.debug(f"[{__class__}] command_get_neighbour_bgp_networks: `{command}`")
         return command
 
@@ -296,7 +299,7 @@ class VmxConfiguration(VendorConfiguration):
         inet_str = "inet" if ip.version == 4 else "inet6"
 
         command = self.CLI_CMD.format(
-            cmd=f"configure; set interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+            command=f"configure; set interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
         )
         logging.debug(f"[{__class__}] command_set_iface_ip: `{command}`")
         return command
@@ -306,14 +309,14 @@ class VmxConfiguration(VendorConfiguration):
         inet_str = "inet" if ip.version == 4 else "inet6"
 
         command = self.CLI_CMD.format(
-            cmd=f"configure; delete interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+            command=f"configure; delete interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
         )
         logging.debug(f"[{__class__}] command_unset_iface_ip: `{command}`")
         return command
 
     # FormatParserMixin
     def check_health(self, result: str) -> bool:
-        return "timeout" not in result
+        return result.strip() != ""
 
     def check_file_existence(self, result: str) -> bool:
         return "No such file or directory" not in result
@@ -321,7 +324,12 @@ class VmxConfiguration(VendorConfiguration):
     def check_configuration_validity(self, result: str) -> bool:
         return "configuration check succeeds" in result
 
-    def parse_bgp_routes(self, result: Any) -> set:
+    def check_bgp_state(self, result: str) -> bool:
+        output = json.loads(result)
+        state = output["bgp-information"][0]["bgp-peer"][0]["peer-state"][0]["data"]
+        return state == "Established"
+
+    def parse_bgp_routes(self, result: str) -> set:
         output = json.loads(result)
 
         bgp_routes = set()

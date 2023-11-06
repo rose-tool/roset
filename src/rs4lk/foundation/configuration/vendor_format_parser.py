@@ -20,5 +20,5 @@ class VendorFormatParser(ABC):
         raise NotImplementedError("You must implement `check_bgp_state` method.")
 
     @abstractmethod
-    def parse_bgp_routes(self, result: Any) -> set:
+    def parse_bgp_routes(self, result: str) -> set:
         raise NotImplementedError("You must implement `parse_routing_table` method.")

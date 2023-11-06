@@ -1,10 +1,6 @@
 import argparse
 import logging
 import os
-import subprocess
-import sys
-
-from Kathara.setting.Setting import Setting
 
 from rs4lk.actions.action_manager import ActionManager
 from rs4lk.colored_logging import set_logging
@@ -17,13 +13,6 @@ from rs4lk.globals import DEFAULT_RIB, DEFAULT_BATFISH_URL
 from rs4lk.model.topology import Topology
 from rs4lk.mrt.table_dump import TableDump
 from rs4lk.network_scenario.network_scenario_manager import NetworkScenarioManager
-
-
-def connect(machine):
-    command = "%s -c \"from Kathara.manager.Kathara import Kathara; " \
-              "Kathara.get_instance().connect_tty('%s', lab_name='%s', shell='%s', logs=True)\"" \
-              % (sys.executable, machine.name, machine.lab.name, Setting.get_instance().device_shell)
-    subprocess.Popen([Setting.get_instance().terminal, "-e", command], start_new_session=True)
 
 
 def parse_args():
@@ -54,13 +43,10 @@ def main(args):
 
     vendor_config.apply_to_network_scenario(net_scenario)
 
-    # logging.info("Deploying network scenario...")
-    # net_scenario_manager.start_candidate_device(net_scenario, vendor_config)
-    # net_scenario_manager.start_other_devices(net_scenario, vendor_config)
-    # logging.success("Network scenario deployed successfully.")
-
-    # for machine in net_scenario.machines.values():
-    #     connect(machine)
+    logging.info("Deploying network scenario...")
+    net_scenario_manager.start_candidate_device(net_scenario, vendor_config)
+    net_scenario_manager.start_other_devices(net_scenario, vendor_config)
+    logging.success("Network scenario deployed successfully.")
 
     all_passed = False
     try:
@@ -80,7 +66,7 @@ def main(args):
     table_dump.close()
     batfish_config.cleanup()
 
-    # net_scenario_manager.undeploy(net_scenario)
+    net_scenario_manager.undeploy(net_scenario)
 
     # 0=Configuration is compliant, 1=Configuration is not compliant
     exit(int(all_passed))

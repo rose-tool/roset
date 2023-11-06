@@ -20,7 +20,7 @@ class ActionResult:
         self.reasons.append(reason)
 
     def passed(self) -> bool:
-        return any([x == SUCCESS for x in self.statuses])
+        return len(self.statuses) == 0 or not any([x == ERROR for x in self.statuses])
 
     def print(self, level: int) -> None:
         for i, status in enumerate(self.statuses):

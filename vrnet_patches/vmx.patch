@@ -1,0 +1,69 @@
+diff --git a/makefile-install.include b/makefile-install.include
+index 2f2bf9a..37463b0 100644
+--- a/makefile-install.include
++++ b/makefile-install.include
+@@ -41,7 +41,7 @@ docker-build: docker-build-common
+ 	else \
+ 	echo "Current build differ from previous, running install!"; \
+ 	docker run --cidfile cidfile --privileged $(REGISTRY)vr-$(VR_NAME):$(VERSION) --trace --install; \
+-	docker commit --change='ENTRYPOINT ["/launch.py"]' $$(cat cidfile) $(REGISTRY)vr-$(VR_NAME):$(VERSION); \
++	docker commit --change='ENTRYPOINT ["/launch.py", "--connection-mode=tc"]' $$(cat cidfile) $(REGISTRY)vr-$(VR_NAME):$(VERSION); \
+ 	docker rm -f $$(cat cidfile); \
+ 	fi
+ 	docker rmi -f $(REGISTRY)vr-$(VR_NAME):$(VERSION)-previous-build || true
+diff --git a/vmx/docker/Dockerfile b/vmx/docker/Dockerfile
+index ee64b61..961b789 100644
+--- a/vmx/docker/Dockerfile
++++ b/vmx/docker/Dockerfile
+@@ -14,6 +14,8 @@ RUN apt-get update -qy \
+    tcpdump \
+    procps \
+    openvswitch-switch \
++   ssh \
++   sshpass \
+    && rm -rf /var/lib/apt/lists/*
+ 
+ COPY vmx /vmx
+@@ -21,4 +23,4 @@ COPY *.py /
+ 
+ EXPOSE 22 161/udp 830 5000 10000-10099 57400
+ HEALTHCHECK CMD ["/healthcheck.py"]
+-ENTRYPOINT ["/launch.py"]
++ENTRYPOINT ["/launch.py", "--connection-mode=tc"]
+diff --git a/vmx/docker/launch.py b/vmx/docker/launch.py
+index ef84b0c..d5c1c80 100755
+--- a/vmx/docker/launch.py
++++ b/vmx/docker/launch.py
+@@ -219,21 +219,22 @@ class VMX_vcp(vrnetlab.VM):
+             return
+ 
+         self.logger.trace(f"Startup config file {STARTUP_CONFIG_FILE} exists")
+-        with open(STARTUP_CONFIG_FILE) as file:
+-            config_lines = file.readlines()
+-            config_lines = [line.rstrip() for line in config_lines]
+-            self.logger.trace(f"Parsed startup config file {STARTUP_CONFIG_FILE}")
+ 
+-        self.logger.info(f"Writing lines from {STARTUP_CONFIG_FILE}")
++        # Copy the file into the VM
++        home_path = f"/var/home/{self.username}"
++        file_path = os.path.join(home_path, "startup-config.cfg")
++        self.logger.info(f"Copying file {STARTUP_CONFIG_FILE} into {file_path} using scp...")
++        os.system(f"/usr/bin/sshpass -p {self.password} /usr/bin/scp -q -oStrictHostKeyChecking=no {STARTUP_CONFIG_FILE} {self.username}@localhost:{home_path}")
+ 
++        self.logger.info(f"Applying configuration in {file_path}...")
+         self.wait_write("cli", "#", 10)
+         self.wait_write("configure", ">", 10)
+-        # Apply lines from file
+-        for line in config_lines:
+-            self.wait_write(line)
++        # Apply file
++        self.wait_write(f"load set {file_path}", "#", 10)
+         # Commit and GTFO
+-        self.wait_write("commit")
+-        self.wait_write("exit")
++        self.wait_write("commit", "#", 10)
++        self.wait_write("exit", "#", 10)
++        self.wait_write("exit", ">", 10)
+ 
+     def wait_write(self, cmd, wait="#", timeout=None):
+         """Wait for something and then send command"""
