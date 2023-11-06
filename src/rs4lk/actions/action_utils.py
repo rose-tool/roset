@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import ipaddress
 import json
 import logging
@@ -10,6 +8,7 @@ import shlex
 from Kathara.manager.Kathara import Kathara
 from Kathara.model.Machine import Machine
 
+from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..webhooks.cymru_bogons import CymruBogons
 
 
@@ -76,7 +75,76 @@ def get_neighbour_bgp_networks(device: Machine,
         pass
     bgp_nets = json.loads(bgp_nets)
 
-    return {ipaddress.ip_network(net) for net in bgp_nets['routes'].keys()}
+    return {
+        ipaddress.ip_network(net) for net, routes in bgp_nets['routes'].items()
+        if routes and any([x['valid'] and x['bestpath'] for x in routes])
+    }
+
+
+def _is_vendor_neighbour_bgp_up(device: Machine, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
+                                config: VendorConfiguration) -> bool:
+    exec_output = Kathara.get_instance().exec(
+        machine_name=device.name,
+        command=shlex.split(config.command_get_neighbour_bgp(neighbour_ip)),
+        lab_name=device.lab.name
+    )
+    output = ""
+    try:
+        while True:
+            (stdout, _) = next(exec_output)
+            stdout = stdout.decode('utf-8') if stdout else ""
+
+            if stdout:
+                output += stdout
+    except StopIteration:
+        pass
+
+    return config.check_bgp_state(output)
+
+
+def _is_neighbour_bgp_up(device: Machine, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    command = f"vtysh -c 'show bgp ipv{neighbour_ip.version} neighbors {neighbour_ip} json'"
+
+    exec_output = Kathara.get_instance().exec(
+        machine_name=device.name,
+        command=shlex.split(command),
+        lab_name=device.lab.name
+    )
+    bgp_neighbour = ""
+    try:
+        while True:
+            (stdout, _) = next(exec_output)
+            stdout = stdout.decode('utf-8') if stdout else ""
+
+            if stdout:
+                bgp_neighbour += stdout
+    except StopIteration:
+        pass
+    bgp_neighbour = json.loads(bgp_neighbour)
+
+    return bgp_neighbour[str(neighbour_ip)]["bgpState"] == "Established"
+
+
+def get_active_neighbour_peering_ip(device: Machine, config: VendorConfiguration, neighbour_ips: list,
+                                    vendor: bool = False) -> ipaddress.IPv4Interface | ipaddress.IPv6Interface | None:
+    # Check if there is a peering on this IP version between provider and candidate.
+    if len(neighbour_ips) == 0:
+        return None
+
+    if len(neighbour_ips) == 1:
+        # We can surely pop since there is only one public IP towards the candidate router
+        (_, cand_peering_ip, _) = neighbour_ips.pop()
+        return cand_peering_ip
+    else:
+        check_fun = _is_vendor_neighbour_bgp_up if vendor else _is_neighbour_bgp_up
+        config = config if vendor else None
+        for _, cand_peering_ip, _ in neighbour_ips:
+            # Check which of the peerings is up
+            if check_fun(device, cand_peering_ip.ip, config):
+                return cand_peering_ip
+
+    # In any case, return None as a protection
+    return None
 
 
 bogons = CymruBogons()

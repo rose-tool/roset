@@ -1,29 +1,18 @@
 import argparse
 import logging
 import os
-import subprocess
-import sys
-
-from Kathara.setting.Setting import Setting
 
 from rs4lk.actions.action_manager import ActionManager
-from rs4lk.batfish.batfish_configuration import BatfishConfiguration
 from rs4lk.colored_logging import set_logging
+from rs4lk.configuration.batfish.batfish_configuration import BatfishConfiguration
 from rs4lk.configuration.bgp_configuration import BgpConfiguration
-from rs4lk.configuration.vendor_configuration_factory import VendorConfigurationFactory
 from rs4lk.foundation.actions.action_result import WARNING
+from rs4lk.foundation.configuration.vendor_configuration_factory import VendorConfigurationFactory
 from rs4lk.foundation.exceptions import BgpRuntimeError, ConfigValidationError
 from rs4lk.globals import DEFAULT_RIB, DEFAULT_BATFISH_URL
 from rs4lk.model.topology import Topology
 from rs4lk.mrt.table_dump import TableDump
 from rs4lk.network_scenario.network_scenario_manager import NetworkScenarioManager
-
-
-def connect(machine):
-    command = "%s -c \"from Kathara.manager.Kathara import Kathara; " \
-              "Kathara.get_instance().connect_tty('%s', lab_name='%s', shell='%s', logs=True)\"" \
-              % (sys.executable, machine.name, machine.lab.name, Setting.get_instance().device_shell)
-    subprocess.Popen([Setting.get_instance().terminal, "-e", command], start_new_session=True)
 
 
 def parse_args():
@@ -54,14 +43,10 @@ def main(args):
 
     vendor_config.apply_to_network_scenario(net_scenario)
 
-    Setting.get_instance().load_from_dict({'image': 'kathara/frr'})
     logging.info("Deploying network scenario...")
     net_scenario_manager.start_candidate_device(net_scenario, vendor_config)
     net_scenario_manager.start_other_devices(net_scenario, vendor_config)
     logging.success("Network scenario deployed successfully.")
-
-    # for machine in net_scenario.machines.values():
-    #     connect(machine)
 
     all_passed = False
     try:
@@ -79,6 +64,7 @@ def main(args):
         pass
 
     table_dump.close()
+    batfish_config.cleanup()
 
     net_scenario_manager.undeploy(net_scenario)
 

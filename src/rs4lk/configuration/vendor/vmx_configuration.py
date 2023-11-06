@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import ipaddress
 import json
 import logging
-from typing import Any
+import re
 
 from Kathara.model.Lab import Lab
 
@@ -13,7 +11,13 @@ from ...model.bgp_session import BgpSession
 
 
 class VmxConfiguration(VendorConfiguration):
-    def _init(self):
+    # Number of supported interfaces in vrnetlab VMX VM
+    SUPPORTED_IFACES: int = 50
+
+    CLI_CMD: str = ("sshpass -p VR-netlab9 ssh -q "
+                    "-oStrictHostKeyChecking=no -oConnectTimeout=1 vrnetlab@localhost \"{command}\"")
+
+    def _init(self) -> None:
         self._parse_ipv6_interface_addresses()
         self._parse_ipv6_sessions()
         self._remap_interfaces()
@@ -91,7 +95,7 @@ class VmxConfiguration(VendorConfiguration):
 
         # Filter out non-valid sessions
         ipv6_bgp_sessions = filter(
-            lambda x: 'remote_as' in x and x['is_v6'] and \
+            lambda x: 'remote_as' in x and x['is_v6'] and
                       self._batfish_config.is_valid_session(x['local_as'], x['remote_as']),
             ipv6_bgp_sessions.values()
         )
@@ -117,20 +121,29 @@ class VmxConfiguration(VendorConfiguration):
         return int(as_str)
 
     def _remap_interfaces(self) -> None:
+        last_iface_idx = [0]
         for iface in self.interfaces.values():
-            self._remap_interface(iface)
+            self._remap_interface(iface, last_iface_idx)
 
-    def _remap_interface(self, iface: dict) -> None:
+        # Fill up missing interfaces
+        for idx in range(last_iface_idx[0] + 1, self.SUPPORTED_IFACES):
+            name = self._build_iface_name('ge', 0, 0, idx, 0)
+            self.iface_to_iface_idx[name] = idx
+
+    def _remap_interface(self, iface: dict, last_iface_idx: list[int]) -> None:
         if '-' not in iface['Interface']['interface']:
             return
 
         iface_type, slot, port, pic, unit = self._parse_iface_format(iface['Interface']['interface'])
         if unit is None:
+            last_iface_idx[0] += 1
             unit = 0
 
-        # Put it as 'ge', in slot 0 and increment by 1 the PIC (because iface 0 is already taken)
+        # Put it as 'ge', in slot 0 and port 0
         iface['Interface']['vendor_interface'] = iface['Interface']['interface']
-        iface['Interface']['interface'] = self._build_iface_name('ge', slot, 0, pic + 1, unit)
+        iface['Interface']['interface'] = self._build_iface_name('ge', 0, 0, last_iface_idx[0], unit)
+
+        self.iface_to_iface_idx[iface['Interface']['interface']] = last_iface_idx[0]
 
         logging.debug(f"Interface `{iface['Interface']['vendor_interface']}` "
                       f"remapped into `{iface['Interface']['interface']}`.")
@@ -138,24 +151,25 @@ class VmxConfiguration(VendorConfiguration):
     def _on_load_complete(self) -> None:
         for session in self.bgp_sessions.values():
             if session.iface:
-                iface_name = session.iface
-                iface_type, slot, port, pic, unit = self._parse_iface_format(iface_name)
-                iface_idx = pic
-
-                session.iface_idx = iface_idx
+                _, _, _, pic, unit = self._parse_iface_format(session.iface)
+                session.iface_idx = pic
+                session.vlan = unit if unit > 0 else None
 
     def get_image(self) -> str:
         return 'vrnetlab/vr-vmx:18.2R1.9'
 
     def apply_to_network_scenario(self, net_scenario: Lab) -> None:
+        net_scenario.add_option('privileged_machines', True)
+
         candidate_name = f"as{self.get_local_as()}"
         candidate_router = net_scenario.get_machine(candidate_name)
         candidate_router.add_meta('image', self.get_image())
-        candidate_router.add_meta('vr', True)
 
-        all_lines = self._clean_filters_on_loopback()
-        all_lines = "\n".join(all_lines)
+        all_lines = "\n".join(self.get_lines())
+        candidate_router.create_file_from_string(all_lines, self.CONFIG_FILE_PATH)
 
+    def get_lines(self) -> list[str]:
+        all_lines = "".join(self._lines)
         for iface_name, iface in self.interfaces.items():
             if '-' not in iface_name:
                 continue
@@ -177,15 +191,19 @@ class VmxConfiguration(VendorConfiguration):
             name_to_replace = self._build_iface_name(iface_type, slot, port, pic, None)
             name_to_replace_unit = f"{name_to_replace} unit {unit}"
 
-            all_lines = all_lines.replace(name_to_search_unit, name_to_replace_unit)
-            all_lines = all_lines.replace(name_to_search, name_to_replace)
+            all_lines = re.sub(
+                rf"\b{name_to_search_unit}\b",
+                name_to_replace_unit,
+                all_lines
+            )
+            all_lines = re.sub(
+                rf"\b{name_to_search}\b",
+                name_to_replace,
+                all_lines
+            )
 
-        candidate_router.create_file_from_string(all_lines, "/config/startup-config.cfg")
-
-    def get_lines(self) -> list[str]:
         clean_lines = []
-
-        for line in self._lines:
+        for line in all_lines.split("\n"):
             # Clean system setup lines (these are handled by the vrnetlab)
             if 'set version' in line or 'set system' in line or 'set chassis' in line:
                 continue
@@ -211,12 +229,14 @@ class VmxConfiguration(VendorConfiguration):
 
             clean_lines.append(line)
 
+        clean_lines = self._clean_filters_on_loopback(clean_lines)
+
         return clean_lines
 
-    def _clean_filters_on_loopback(self) -> list[str]:
+    @staticmethod
+    def _clean_filters_on_loopback(all_lines: list[str]) -> list[str]:
         filter_line_idx = -1
 
-        all_lines = self.get_lines()
         for idx, line in enumerate(all_lines):
             if 'set interfaces lo0' in line and 'filter input':
                 filter_line_idx = idx
@@ -249,35 +269,67 @@ class VmxConfiguration(VendorConfiguration):
         return name
 
     # CommandsMixin
+    def command_healthcheck(self) -> str:
+        command = self.CLI_CMD.format(command="show system uptime")
+        logging.debug(f"[{__class__}] command_healthcheck: `{command}`")
+        return command
+
     def command_list_file(self) -> str:
-        return "file list startup-config.cfg"
+        command = self.CLI_CMD.format(command="file list startup-config.cfg")
+        logging.debug(f"[{__class__}] command_list_file: `{command}`")
+        return command
 
     def command_test_configuration(self) -> str:
-        return "configure; commit check; exit"
+        command = self.CLI_CMD.format(command="configure; commit check; exit")
+        logging.debug(f"[{__class__}] command_test_configuration: `{command}`")
+        return command
+
+    def command_get_neighbour_bgp(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+        command = self.CLI_CMD.format(command=f"show bgp neighbor {str(neighbour_ip)} | display json")
+        logging.debug(f"[{__class__}] command_get_neighbour_bgp: `{command}`")
+        return command
 
     def command_get_neighbour_bgp_networks(self, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
-        return f"show route receive-protocol bgp {str(neighbour_ip)} all | display json"
+        command = self.CLI_CMD.format(command=f"show route receive-protocol bgp {str(neighbour_ip)} all | display json")
+        logging.debug(f"[{__class__}] command_get_neighbour_bgp_networks: `{command}`")
+        return command
 
     def command_set_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
         unit_name = VmxConfiguration._build_iface_name("ge", 0, 0, num, 0)
         inet_str = "inet" if ip.version == 4 else "inet6"
 
-        return f"configure; set interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+        command = self.CLI_CMD.format(
+            command=f"configure; set interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+        )
+        logging.debug(f"[{__class__}] command_set_iface_ip: `{command}`")
+        return command
 
     def command_unset_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
         unit_name = VmxConfiguration._build_iface_name("ge", 0, 0, num, 0)
         inet_str = "inet" if ip.version == 4 else "inet6"
 
-        return f"configure; delete interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+        command = self.CLI_CMD.format(
+            command=f"configure; delete interfaces {unit_name} family {inet_str} address {str(ip)}; commit; exit;"
+        )
+        logging.debug(f"[{__class__}] command_unset_iface_ip: `{command}`")
+        return command
 
     # FormatParserMixin
+    def check_health(self, result: str) -> bool:
+        return result.strip() != ""
+
     def check_file_existence(self, result: str) -> bool:
         return "No such file or directory" not in result
 
     def check_configuration_validity(self, result: str) -> bool:
         return "configuration check succeeds" in result
 
-    def parse_bgp_routes(self, result: Any) -> set:
+    def check_bgp_state(self, result: str) -> bool:
+        output = json.loads(result)
+        state = output["bgp-information"][0]["bgp-peer"][0]["peer-state"][0]["data"]
+        return state == "Established"
+
+    def parse_bgp_routes(self, result: str) -> set:
         output = json.loads(result)
 
         bgp_routes = set()

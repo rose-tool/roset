@@ -1,13 +1,16 @@
 import logging
 
-from ..batfish.batfish_configuration import BatfishConfiguration
-from ..foundation.configuration.vendor_configuration import VendorConfiguration
-from ..foundation.exceptions import ConfigError
-from ..foundation.factory.Factory import Factory
+from .vendor_configuration import VendorConfiguration
+from ..exceptions import ConfigError
+from ..factory.Factory import Factory
+from ...configuration.batfish.batfish_configuration import BatfishConfiguration
 
 
 class VendorConfigurationFactory(Factory):
-    format_to_type: dict = {'FLAT_JUNIPER': 'vmx'}
+    format_to_type: dict = {
+        'FLAT_JUNIPER': 'vmx',
+        'CISCO_IOS_XR': 'ios_xr'
+    }
 
     def __init__(self) -> None:
         self.module_template: str = "rs4lk.configuration.vendor"

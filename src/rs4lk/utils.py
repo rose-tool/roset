@@ -1,3 +1,6 @@
+import ipaddress
+
+# Network IP Helpers
 def aggregate_v4_6_networks(nets: dict[int, set]) -> None:
     for v, networks in nets.items():
         nets[v] = aggregate_networks(networks)

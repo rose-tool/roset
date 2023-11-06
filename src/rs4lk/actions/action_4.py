@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import ipaddress
 import logging
 import shlex
@@ -71,7 +69,7 @@ class Action4(Action):
             for _, customer in customer_routers:
                 candidate_neighbour, _ = customer.get_neighbour_by_name(candidate.name)
 
-                candidate_ips = candidate_neighbour.get_ips(is_public=True)
+                candidate_ips = candidate_neighbour.get_neighbours_ips(is_public=True)
                 if len(candidate_ips[v]) == 0:
                     logging.warning(f"No networks announced in IPv{v} from "
                                     f"customer AS{customer.identifier} towards candidate AS, skipping...")
@@ -84,13 +82,26 @@ class Action4(Action):
                 # Announce the spoofed network from the customer
                 self._vtysh_network(customer_device, customer.identifier, spoofing_net)
                 customer_neigh, _ = candidate.get_neighbour_by_name(customer.name)
-                # We can surely pop since there is only one public IP towards the customer router
-                (customer_peering_ip, _) = customer_neigh.get_ips(is_public=True)[v].pop()
+                customer_neigh_ips = customer_neigh.get_neighbours_ips(is_public=True)
+
+                customer_peering_ip = action_utils.get_active_neighbour_peering_ip(
+                    candidate_device, config, customer_neigh_ips[v], vendor=True
+                )
+                if not customer_peering_ip:
+                    logging.warning(f"No peering on IPv{v} between AS{customer.identifier} and candidate, skipping...")
+                    action_result.add_result(
+                        WARNING, f"No peering on IPv{v} between AS{customer.identifier} and candidate."
+                    )
+
+                    self._no_vtysh_network(customer_device, customer.identifier, spoofing_net)
+
+                    continue
 
                 while True:
                     time.sleep(2)
-                    customer_cand_nets = self._vendor_get_neighbour_bgp_networks(candidate_device, config,
-                                                                                 customer_peering_ip.ip)
+                    customer_cand_nets = self._vendor_get_neighbour_bgp_networks(
+                        candidate_device, config, customer_peering_ip.ip
+                    )
                     if spoofing_net in customer_cand_nets:
                         logging.info(f"Network {spoofing_net} received by candidate AS.")
                         break
@@ -99,10 +110,21 @@ class Action4(Action):
                     provider_device = net_scenario.get_machine(provider.name)
 
                     candidate_neigh, _ = provider.get_neighbour_by_name(candidate.name)
-                    # We can surely pop since there is only one public IP towards the candidate router
-                    (cand_peering_ip, _) = candidate_neigh.get_ips(is_public=True)[v].pop()
-                    candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)
+                    candidate_neigh_ips = candidate_neigh.get_neighbours_ips(is_public=True)
 
+                    cand_peering_ip = action_utils.get_active_neighbour_peering_ip(
+                        provider_device, config, candidate_neigh_ips[v], vendor=False
+                    )
+                    if not cand_peering_ip:
+                        logging.warning(
+                            f"No peering on IPv{v} between AS{provider.identifier} and candidate, skipping..."
+                        )
+                        action_result.add_result(
+                            WARNING, f"No peering on IPv{v} between AS{provider.identifier} and candidate."
+                        )
+                        continue
+
+                    candidate_nets = action_utils.get_neighbour_bgp_networks(provider_device, cand_peering_ip.ip)
                     result = spoofing_net not in candidate_nets
                     if result:
                         msg = f"Configuration correctly blocks announcements of the spoofed network {spoofing_net} " \

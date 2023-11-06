@@ -1,6 +1,7 @@
-kathara>=3.5.5;
+kathara>=3.7.0;
 pybatfish;
 coloredlogs;
 requests;
 sortedcontainers;
 mrtparse;
+cisco-config-parser;
