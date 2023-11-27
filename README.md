@@ -23,8 +23,30 @@ Currently, ROSE-T supports two Vendor Routers:
         sysctl -w fs.inotify.max_user_watches=64000
       ```
 
-
 ## Hands-on
 
-Download this repository.
+### Pre-Requisites
 
+1. Run the Batfish container:
+```
+docker run --name batfish -v batfish-data:/data -p 8888:8888 -p 9997:9997 -p 9996:9996 batfish/allinone
+```
+
+2. Download the requisites:
+```
+python3 -m pip install -r src/requirements.txt
+```
+3. Download the updated RIB and parse it.
+```
+python3 load_mrt.py <TABLE_DUMP_RIB_FILE> <OUTPUT_FILE.db>
+```
+
+By default, ROSET takes as `<OUTPUT_FILE.db>` the one in `resources/rib_latest.db`.
+
+## Run a Test
+
+To run a test:
+```
+cd src
+python3 test.py --config_path <CONFIGURATION_PATH>
+```
