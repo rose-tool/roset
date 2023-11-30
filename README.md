@@ -6,9 +6,9 @@
 It allows to ensure that a certain router configuration is MANRS-compliant to the [Network Operator Guidelines](https://www.manrs.org/netops/).
 
 Specifically, ROSE-T perfroms the check for validating the following actions of MANRS:
-- Action 1: Filtering -> Prevent propagation of incorrect routing information
-- Action 2: Anti-Spoofing -> Prevent packets with spoofed source IP address from entering or leaving the network
-- Action 4: Global Information -> Network operators must publicly document their routing policies, ASNs and prefixes
+- Action 1: **Filtering** -> Prevent propagation of incorrect routing information.
+- Action 2: **Anti-Spoofing** -> Prevent packets with spoofed source IP address from entering or leaving the network.
+- Action 4: **Global Information** -> Network operators must publicly document their routing policies, ASNs and prefixes.
 
 Action 3 cannot be validated automatically since it implies to verify contact information of the candidate.  
 
@@ -16,19 +16,18 @@ It leverages:
 * __[Batfish](https://github.com/batfish/batfish)__ to parse and abstract the vendor configuration.
 * __[Kathará](https://github.com/KatharaFramework/Kathara)__ to emulate a virtual network scenario in which the router **realistically interacts** with providers and customers.
 
-**WARNING**: The current version is in alpha state for demonstration purposes, and it is not intended to be used in production.
+**WARNING**: The current version is still for demonstration purposes, and it is not intended to be used in production.
 
 ## How does it work?
 
 <p align="center">
-    <a href="https://www.kathara.org">
-        <img src="images/steps.png" alt="ROSE-T Steps" width="50%" />
-    </a>
+    <img src="images/steps.png" alt="ROSE-T Steps" width="50%" />
 </p>
 
 ### Step 1: Gather Candidate Information
 In this step the system checks the `Global Information` of the candidate (`Action 4` of MANRS), validating the public information.
-To do so ROSE-T verifies:
+
+To do so, ROSE-T verifies:
 1. That the networks announced to transit are in the IRR Entry.
 2. That the networks in the IRR Entry are announced to transits.
 
@@ -50,27 +49,27 @@ In this step the system leverages on the emulated environment to verify `Action 
 
 - Filtering (Action 1): "Ensure the correctness of your own announcements and those from your customers to adjacent 
 networks".
-  For each customer: 
+
+For each customer: 
   1. Select non-overlapping subnet and announce it to the candidate router.
   2. Wait that BGP converges.
   3. Check the provider's received routes using the FRR control plane.
+
 <p align="center">
-    <a href="https://www.kathara.org">
-        <img src="images/filtering.png" alt="ROSE-T Filtering Check" width="50%" />
-    </a>
+    <img src="images/filtering.png" alt="ROSE-T Filtering Check" width="50%" />
 </p>
 
 - Anti-Spoofing (Action 2): "Enable source address validation for at least single-homed stub customer networks, 
 their own end-users, and infrastructure".
-  1. For each provider the system creates a client.
+
+For each provider:
+  1. The system creates a client in the provider's AS.
   2. Assign IPs (v4/v6) to each created client.
   3. Send the spoofed ICMP packet.
   4. Check if the spoofed packet leaves the candidate AS. 
   
 <p align="center">
-    <a href="https://www.kathara.org">
-        <img src="images/spoofing.png" alt="ROSE-T Anti-Spoofing Check" width="50%" />
-    </a>
+    <img src="images/spoofing.png" alt="ROSE-T Anti-Spoofing Check" width="50%" />
 </p>
   
 ## Supported Vendor Routers
@@ -116,7 +115,7 @@ The command requires two positional parameters:
 git clone https://github.com/hellt/vrnetlab
 ```
 
-2. Apply the patch located in the `vrnet_patches` folder. If you cloned `vrnetlab` in the root directory of ROSE-T:
+2. Apply the patch located in the `vrnet_patches` folder. If you cloned `vrnetlab` in the root folder of ROSE-T:
 ```bash
 cd vrnetlab
 git apply ../vrnet_patches/vmx.patch
