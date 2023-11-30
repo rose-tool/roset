@@ -5,7 +5,7 @@
 
 It allows to ensure that a certain router configuration is MANRS-compliant to the [Network Operator Guidelines](https://www.manrs.org/netops/).
 
-Specifically, ROSE-T perfroms the check for validating the following actions of MANRS:
+Specifically, ROSE-T performs the check for validating the following actions of MANRS:
 - Action 1: **Filtering** -> Prevent propagation of incorrect routing information.
 - Action 2: **Anti-Spoofing** -> Prevent packets with spoofed source IP address from entering or leaving the network.
 - Action 4: **Global Information** -> Network operators must publicly document their routing policies, ASNs and prefixes.
@@ -129,7 +129,8 @@ git apply ../vrnet_patches/vmx.patch
 
 ## Run a Test
 
-To run a test, the simplest command is:
+### Action 1 and 2 verification
+To run the verification of Action 1 and 2, the simplest command is:
 ```
 cd src
 python3 test.py --config_path <CONFIGURATION_PATH>
@@ -145,3 +146,8 @@ The supported parameters are:
 The test can take up to few minutes, depending on your hardware. Ensure that you have a good amount of RAM and nested virtualization enabled.
 
 **NOTE**: ROSE-T works only on Docker on Linux or WSL2, and it is compatible only with the `amd64` architecture (Apple Silicon is not supported).
+
+### Action 4 verification
+Currently, the Action 4 verification is a standalone Prolog program. We plan to merge the two tools in the near future.
+
+To verify Action 4, enter the `src_prolog` directory and follow the related [README](src_prolog/README.md) file.
