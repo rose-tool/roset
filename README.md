@@ -13,7 +13,11 @@ It leverages:
 
 ## How does it work?
 
-![img.png](img.png)
+<p align="center">
+    <a href="https://www.kathara.org">
+        <img src="images/steps.png" alt="ROSE-T Steps" width="50%" />
+    </a>
+</p>
 
 ### Step 1: Gather Candidate Information
 In this step, ROSE-T verifies: 
@@ -40,8 +44,12 @@ In this step the system leverages on the emulated environment to verify MANRS Ac
   2. Create a client inside the provider AS.
   3. Assign IPs (v4/v6) to each created client
   4. Send the spoofed ICMP packet
-  
-![img_2.png](img_2.png)
+
+<p align="center">
+    <a href="https://www.kathara.org">
+        <img src="images/spoofing.png" alt="ROSE-T Anti-Spoofing Check" width="50%" />
+    </a>
+</p>
 
 - Action 4 (Filtering):
   For each customer: 
@@ -49,7 +57,11 @@ In this step the system leverages on the emulated environment to verify MANRS Ac
   2. Wait that BGP converges.
   3. Check the provider's received routes using the FRRouting control plane.
   
-![img_3.png](img_3.png)
+<p align="center">
+    <a href="https://www.kathara.org">
+        <img src="images/filtering.png" alt="ROSE-T Filtering Check" width="50%" />
+    </a>
+</p>
   
 ## Supported Vendor Routers
 Currently, ROSE-T supports two Vendor Routers:
