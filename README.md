@@ -3,7 +3,14 @@
 ## What is it?
 **ROuting SEcurity Tool (ROSE-T)** is a network router configuration checker.
 
-It allows to ensure that a certain router configuration is MANRS-compliant.
+It allows to ensure that a certain router configuration is MANRS-compliant to the [Network Operator Guidelines](https://www.manrs.org/netops/).
+
+Specifically, ROSE-T perfroms the check for validating the following actions of MANRS:
+- Action 1: Filtering -> Prevent propagation of incorrect routing information
+- Action 2: Anti-Spoofing -> Prevent packets with spoofed source IP address from entering or leaving the network
+- Action 4: Global Information -> Network operators must publicly document their routing policies, ASNs and prefixes
+
+Action 3 cannot be validated automatically since it implies to verify contact information of the candidate.  
 
 It leverages:
 * __[Batfish](https://github.com/batfish/batfish)__ to parse and abstract the vendor configuration.
@@ -20,7 +27,8 @@ It leverages:
 </p>
 
 ### Step 1: Gather Candidate Information
-In this step, ROSE-T verifies: 
+In this step the system checks the `Global Information` of the candidate (`Action 4` of MANRS), validating the public information.
+To do so ROSE-T verifies:
 1. That the networks announced to transit are in the IRR Entry.
 2. That the networks in the IRR Entry are announced to transits.
 
@@ -38,28 +46,29 @@ In this step the system uses the computed information to build a minimal network
 To power the emulation, ROSE-T leverages on Kathará. The candidate router will use the original configuration/vendor software, while other ASes are emulated as a single router running FRRouting. 
 
 ### Step 5: Verify Compliance to MANRS
-In this step the system leverages on the emulated environment to verify MANRS Action 3 and Action 4. 
-- Action 3 (Anti-Spoofing):
-  For each provider:
-  2. Create a client inside the provider AS.
-  3. Assign IPs (v4/v6) to each created client
-  4. Send the spoofed ICMP packet
+In this step the system leverages on the emulated environment to verify `Action 3` and `Action 4` of MANRS. 
 
-<p align="center">
-    <a href="https://www.kathara.org">
-        <img src="images/spoofing.png" alt="ROSE-T Anti-Spoofing Check" width="50%" />
-    </a>
-</p>
-
-- Action 4 (Filtering):
+- Filtering (Action 1): "Ensure the correctness of your own announcements and those from your customers to adjacent 
+networks".
   For each customer: 
   1. Select non-overlapping subnet and announce it to the candidate router.
   2. Wait that BGP converges.
-  3. Check the provider's received routes using the FRRouting control plane.
-  
+  3. Check the provider's received routes using the FRR control plane.
 <p align="center">
     <a href="https://www.kathara.org">
         <img src="images/filtering.png" alt="ROSE-T Filtering Check" width="50%" />
+    </a>
+</p>
+
+- Anti-Spoofing (Action 2 ): "Enable source address validation for at least single-homed stub customer networks, 
+their own end-users, and infrastructure".
+  1. For each provider the system creates a client.
+  2. Assign IPs (v4/v6) to each created client
+  3. Send the spoofed ICMP packet
+  
+<p align="center">
+    <a href="https://www.kathara.org">
+        <img src="images/spoofing.png" alt="ROSE-T Anti-Spoofing Check" width="50%" />
     </a>
 </p>
   
