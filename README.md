@@ -13,7 +13,7 @@ It leverages:
 
 ## How does it work?
 
-![img.png](img.png)
+![img.png](images/steps.png)
 
 ### Step 1: Gather Candidate Information
 In this step the system verifies: 
@@ -41,7 +41,7 @@ In this step the system leverages on the emulated environment to verify `Action 
   2. Assign IPs (v4/v6) to each created client
   3. Send the spoofed ICMP packet
   
-![img_2.png](img_2.png)
+![img_2.png](images/spoofing.png)
 
 - Action 4 (Filtering):
   For each customer: 
@@ -49,7 +49,7 @@ In this step the system leverages on the emulated environment to verify `Action 
   2. Wait that BGP converges.
   3. Check the provider's received routes using the FRR control plane.
   
-![img_3.png](img_3.png)
+![img_3.png](images/filtering.png)
   
 ## Supported Vendor Routers
 Currently, ROSE-T supports two Vendor Routers:
