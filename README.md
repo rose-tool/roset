@@ -25,7 +25,7 @@ It leverages:
 </p>
 
 ### Step 1: Gather Candidate Information
-In this step the system checks the `Global Information` of the candidate (`Action 4` of MANRS), validating the public information.
+In this step the system checks the `Global Information` of the candidate (Action 4 of MANRS), validating the public information.
 
 To do so, ROSE-T verifies:
 1. That the networks announced to transit are in the IRR Entry.
@@ -45,10 +45,9 @@ In this step the system uses the computed information to build a minimal network
 To power the emulation, ROSE-T leverages on Kathará. The candidate router will use the original configuration/vendor software, while other ASes are emulated as a single router running FRRouting. 
 
 ### Step 5: Verify Compliance to MANRS
-In this step the system leverages on the emulated environment to verify `Action 3` and `Action 4` of MANRS. 
+In this step the system leverages on the emulated environment to verify Action 3 and Action 4 of MANRS. 
 
-- Filtering (Action 1): "Ensure the correctness of your own announcements and those from your customers to adjacent 
-networks".
+**Filtering (Action 1): "Ensure the correctness of your own announcements and those from your customers to adjacent networks"**
 
 For each customer: 
   1. Select non-overlapping subnet and announce it to the candidate router.
@@ -59,8 +58,7 @@ For each customer:
     <img src="images/filtering.png" alt="ROSE-T Filtering Check" width="50%" />
 </p>
 
-- Anti-Spoofing (Action 2): "Enable source address validation for at least single-homed stub customer networks, 
-their own end-users, and infrastructure".
+**Anti-Spoofing (Action 2): "Enable source address validation for at least single-homed stub customer networks, their own end-users, and infrastructure"**
 
 For each provider:
   1. The system creates a client in the provider's AS.
@@ -85,6 +83,10 @@ Currently, ROSE-T supports two Vendor Routers:
       ```
 
 ## Hands-on
+
+1. Docker
+2. Kathará
+3. Python 3.10 or 3.11
 
 ### Pre-Requisites
 
