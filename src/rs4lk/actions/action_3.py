@@ -203,9 +203,16 @@ class Action3(Action):
                 # Set the interface IP on the candidate
                 self._vendor_ip_add(candidate_device, config, candidate_client_iface_idx, candidate_ip)
 
+                # Copy the sniffer into the "Internet" client
+                logging.info(f"Copying sniffer script into client `{internet_router_client_name}`...")
+                with open(os.path.join(RESOURCES_FOLDER, "host_sniffer.py"), "rb") as py_script:
+                    content = BytesIO(py_script.read())
+                Kathara.get_instance().update_lab_from_api(net_scenario)
+                Kathara.get_instance().copy_files(internet_router_client, {'/host_sniffer.py': content})
+
                 logging.info("Waiting 20s before performing check...")
                 time.sleep(20)
-                result = self._perform_spoofing_check(candidate_client,
+                result = self._perform_spoofing_check(candidate_client, internet_router_client,
                                                       candidate_client_ip.ip, spoofed_src_ip, provider_client_addr)
                 if result:
                     msg = f"Configuration correctly blocks a spoofed packet from network {spoofing_net} " \
@@ -364,29 +371,49 @@ class Action3(Action):
             pass
 
     @staticmethod
-    def _perform_spoofing_check(device: Machine,
+    def _perform_spoofing_check(send_device: Machine, rcv_device: Machine,
                                 candidate_ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
                                 spoof_ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
                                 dst_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         logging.info(f"Performing spoof check with IPs=({candidate_ip}, {spoof_ip}, {dst_ip})...")
 
         v = candidate_ip.version
-        exec_output = Kathara.get_instance().exec(
-            machine_name=device.name,
-            command=shlex.split(f"/usr/bin/python3 /host_spoof_check.py {candidate_ip} {spoof_ip} {dst_ip} {v}"),
-            lab_name=device.lab.name
+
+        exec_output_sniffer = Kathara.get_instance().exec(
+            machine_name=rcv_device.name,
+            command=shlex.split(f"/usr/bin/python3 /host_sniffer.py {dst_ip} {spoof_ip} {v}"),
+            lab_name=send_device.lab.name
         )
 
-        # Triggers the command.
-        result = None
-        while result is None:
+        exec_output_spoof = Kathara.get_instance().exec(
+            machine_name=send_device.name,
+            command=shlex.split(f"/usr/bin/python3 /host_spoof_check.py {candidate_ip} {spoof_ip} {dst_ip} {v}"),
+            lab_name=send_device.lab.name
+        )
+
+        # First, get the output from the spoof script
+        result_spoof = None
+        while result_spoof is None:
             time.sleep(2)
             try:
-                (result, _) = next(exec_output)
+                (result_spoof, _) = next(exec_output_spoof)
             except StopIteration:
                 pass
 
-        return result.decode('utf-8').strip() == "1"
+        spoof_passed = result_spoof.decode('utf-8').strip() == "1"
+
+        # Once exited, check what we captured on the sniffer
+        result_sniff = None
+        while result_sniff is None:
+            time.sleep(2)
+            try:
+                (result_sniff, _) = next(exec_output_sniffer)
+            except StopIteration:
+                pass
+
+        sniff_passed = result_sniff.decode('utf-8').strip() == "1"
+
+        return spoof_passed and sniff_passed
 
     def name(self) -> str:
         return "spoofing"
