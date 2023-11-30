@@ -60,11 +60,12 @@ networks".
     </a>
 </p>
 
-- Anti-Spoofing (Action 2 ): "Enable source address validation for at least single-homed stub customer networks, 
+- Anti-Spoofing (Action 2): "Enable source address validation for at least single-homed stub customer networks, 
 their own end-users, and infrastructure".
   1. For each provider the system creates a client.
-  2. Assign IPs (v4/v6) to each created client
-  3. Send the spoofed ICMP packet
+  2. Assign IPs (v4/v6) to each created client.
+  3. Send the spoofed ICMP packet.
+  4. Check if the spoofed packet leaves the candidate AS. 
   
 <p align="center">
     <a href="https://www.kathara.org">
