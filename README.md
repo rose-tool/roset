@@ -18,6 +18,10 @@ It leverages:
 
 **WARNING**: The current version is still for demonstration purposes, and it is not intended to be used in production.
 
+## ROSE-T at RIPE
+Mariano Scazzariello presented ROSE-T at RIPE87 in Rome (12/01/2023):
+- Presentation and Slides: https://ripe87.ripe.net/archives/video/1262/
+
 ## How does it work?
 
 <p align="center">
