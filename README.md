@@ -3,6 +3,11 @@
 ## What is it?
 **ROuting SEcurity Tool (ROSE-T)** is a network router configuration checker.
 
+ROSE-T was born in October 2022 from an idea of [Antonio Prado](https://www.prado.it) as a research object for a PhD thesis at the University of Chieti-Pescara in Italy.
+The thesis focuses on the security of routing policies to the Internet of network operators. The goal is the implementation of a method capable of verify the configurations of devices in use within Autonomous Systems (AS) also using logical formalisms applied to data extracted from sources authoritative and reliable (Regional Internet Registry and route-collectors).
+
+The first disclosure of ROSE-T, under another name (RS4LK), was made during an "ITNOG on the road" meeting on April 19, 2023 in Pisa, Italy. The [slides](https://www.prado.it/wp-content/uploads/Routing-Security-for-lazy-kids.pdf) show an initial outline of the work in collaboration with researcher [Mariano Scazzariello](https://github.com/Skazza94). After months of effort, scholar [Tommaso Caiazzi](https://github.com/tcaiazzi) also joined the project, and today it has resulted in a software product based on a method that places logical formalism alongside emulation tools.
+
 It allows to ensure that a certain router configuration is MANRS-compliant to the [Network Operator Guidelines](https://www.manrs.org/netops/).
 
 Specifically, ROSE-T performs the check for validating the following actions of MANRS:
