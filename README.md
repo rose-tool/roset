@@ -117,9 +117,10 @@ The command requires two positional parameters:
 git clone https://github.com/hellt/vrnetlab
 ```
 
-2. Apply the patch located in the `vrnet_patches` folder. If you cloned `vrnetlab` in the root folder of ROSE-T:
+2. Apply the patches located in the `vrnet_patches` folder. If you cloned `vrnetlab` in the root folder of ROSE-T:
 ```bash
 cd vrnetlab
+git apply ../vrnet_patches/vrnet.patch
 git apply ../vrnet_patches/vmx.patch
 ```
 

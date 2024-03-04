@@ -1,16 +1,3 @@
-diff --git a/makefile-install.include b/makefile-install.include
-index 2f2bf9a..37463b0 100644
---- a/makefile-install.include
-+++ b/makefile-install.include
-@@ -41,7 +41,7 @@ docker-build: docker-build-common
- 	else \
- 	echo "Current build differ from previous, running install!"; \
- 	docker run --cidfile cidfile --privileged $(REGISTRY)vr-$(VR_NAME):$(VERSION) --trace --install; \
--	docker commit --change='ENTRYPOINT ["/launch.py"]' $$(cat cidfile) $(REGISTRY)vr-$(VR_NAME):$(VERSION); \
-+	docker commit --change='ENTRYPOINT ["/launch.py", "--connection-mode=tc"]' $$(cat cidfile) $(REGISTRY)vr-$(VR_NAME):$(VERSION); \
- 	docker rm -f $$(cat cidfile); \
- 	fi
- 	docker rmi -f $(REGISTRY)vr-$(VR_NAME):$(VERSION)-previous-build || true
 diff --git a/vmx/docker/Dockerfile b/vmx/docker/Dockerfile
 index ee64b61..961b789 100644
 --- a/vmx/docker/Dockerfile
