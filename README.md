@@ -1,4 +1,6 @@
-# ROuting SEcurity Tool (ROSE-T)
+<p align="center">
+  <img src="https://github.com/rose-tool/roset/assets/26346836/d58a736b-ea99-4929-a8c6-04eb47364fdd">
+</p>
 
 ## What is it?
 **ROuting SEcurity Tool (ROSE-T)** is a network router configuration checker.
