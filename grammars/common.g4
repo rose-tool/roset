@@ -18,14 +18,11 @@ value
     | COMPLEX_WORD
     | COMPLEX_WORD2
     | COMPLEX_WORD3
-    | INTERFACE_NAME
     ;
 
 list
     : value (',' value)*
     ;
-
-INTERFACE_NAME : 'ether' NUMBER | 'sfp' NUMBER ('-' NUMBER)* | 'qsfp' NUMBER ('-' NUMBER)*;
 
 WORD : [a-zA-Z0-9_-]+;
 COMPLEX_WORD : '.'? WORD (('.' | '-' | '/') | WORD)*;

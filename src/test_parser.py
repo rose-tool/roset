@@ -1,9 +1,10 @@
 import sys
 
-from rs4lk.configuration.parser.routeros.routeros_configuration import RouterosConfiguration
+from rs4lk.parser.configuration_parser import ConfigurationParser
 
 if __name__ == '__main__':
-    config = RouterosConfiguration(sys.argv[1])
+    parser = ConfigurationParser()
+    config = parser.parse(sys.argv[1], sys.argv[2])
     print("Interfaces")
     print(config.interfaces)
     print("peerings")

@@ -6,7 +6,8 @@ from ..configuration.router_configuration import RouterConfiguration
 
 class ConfigurationParser:
 
-    def parse(self, configuration_path: str, os_name: str) -> RouterConfiguration:
+    @staticmethod
+    def parse(configuration_path: str, os_name: str) -> RouterConfiguration:
         router_configuration = RouterConfiguration(configuration_path)
 
         lexer_class = LexerFactory().get_class_from_os_name(os_name)

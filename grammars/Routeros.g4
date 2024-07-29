@@ -71,3 +71,4 @@ otherConfig
 
 interfaceName : INTERFACE_NAME;
 
+INTERFACE_NAME : 'ether' NUMBER | 'sfp' NUMBER ('-' NUMBER)* | 'qsfp' NUMBER ('-' NUMBER)*;
