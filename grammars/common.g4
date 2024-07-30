@@ -6,28 +6,30 @@ keyValuePair
 
 key: (WORD | COMPLEX_WORD | COMPLEX_WORD2 | COMPLEX_WORD3);
 
+INTERFACE_NAME : 'ether' NUMBER | 'sfp' NUMBER ('-' NUMBER)* | 'qsfp' NUMBER ('-' NUMBER)*;
+
 value
     : STRING
+    | WORD
     | NUMBER
     | IP_ADDRESS
     | IPV6_ADDRESS
     | NETWORK
     | IPV6_NETWORK
     | BOOLEAN
-    | WORD
     | COMPLEX_WORD
     | COMPLEX_WORD2
     | COMPLEX_WORD3
+    | INTERFACE_NAME
+    | list
     ;
 
-list
-    : value (',' value)*
-    ;
+list: WORD (',' WORD)*;
 
-WORD : [a-zA-Z0-9_-]+;
+WORD : [a-zA-Z0-9*_-]+;
 COMPLEX_WORD : '.'? WORD (('.' | '-' | '/') | WORD)*;
 COMPLEX_WORD2 : '.' WORD;
-COMPLEX_WORD3: WORD '.' WORD;
+COMPLEX_WORD3: WORD ('.' | '-') WORD;
 STRING : '"' .*? '"';
 NUMBER : [0-9]+;
 IP_ADDRESS : [0-9]+ '.' [0-9]+ '.' [0-9]+ '.' [0-9]+;

@@ -10,7 +10,7 @@ else:
 
 def serializedATN():
     return [
-        4,1,33,245,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+        4,1,32,258,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         2,14,7,14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,1,0,
         1,0,5,0,43,8,0,10,0,12,0,46,9,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -29,78 +29,85 @@ def serializedATN():
         1,13,5,13,197,8,13,10,13,12,13,200,9,13,1,14,1,14,4,14,204,8,14,
         11,14,12,14,205,1,14,1,14,5,14,210,8,14,10,14,12,14,213,9,14,1,14,
         1,14,1,14,1,14,1,14,1,14,4,14,221,8,14,11,14,12,14,222,3,14,225,
-        8,14,1,15,1,15,1,16,1,16,1,16,1,16,1,17,1,17,1,18,1,18,1,19,1,19,
-        1,19,5,19,240,8,19,10,19,12,19,243,9,19,1,19,1,191,0,20,0,2,4,6,
-        8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,0,3,2,0,2,2,9,9,2,
-        0,15,15,18,21,2,0,17,25,27,29,272,0,44,1,0,0,0,2,56,1,0,0,0,4,75,
-        1,0,0,0,6,77,1,0,0,0,8,93,1,0,0,0,10,101,1,0,0,0,12,113,1,0,0,0,
-        14,121,1,0,0,0,16,133,1,0,0,0,18,141,1,0,0,0,20,153,1,0,0,0,22,161,
-        1,0,0,0,24,173,1,0,0,0,26,186,1,0,0,0,28,224,1,0,0,0,30,226,1,0,
-        0,0,32,228,1,0,0,0,34,232,1,0,0,0,36,234,1,0,0,0,38,236,1,0,0,0,
-        40,43,3,2,1,0,41,43,5,33,0,0,42,40,1,0,0,0,42,41,1,0,0,0,43,46,1,
-        0,0,0,44,42,1,0,0,0,44,45,1,0,0,0,45,47,1,0,0,0,46,44,1,0,0,0,47,
-        48,5,0,0,1,48,1,1,0,0,0,49,57,3,4,2,0,50,57,3,8,4,0,51,57,3,12,6,
-        0,52,57,3,16,8,0,53,57,3,20,10,0,54,57,3,24,12,0,55,57,3,26,13,0,
-        56,49,1,0,0,0,56,50,1,0,0,0,56,51,1,0,0,0,56,52,1,0,0,0,56,53,1,
-        0,0,0,56,54,1,0,0,0,56,55,1,0,0,0,57,3,1,0,0,0,58,59,5,1,0,0,59,
-        64,5,18,0,0,60,63,5,33,0,0,61,63,3,28,14,0,62,60,1,0,0,0,62,61,1,
-        0,0,0,63,66,1,0,0,0,64,62,1,0,0,0,64,65,1,0,0,0,65,76,1,0,0,0,66,
-        64,1,0,0,0,67,72,5,1,0,0,68,71,5,33,0,0,69,71,3,6,3,0,70,68,1,0,
-        0,0,70,69,1,0,0,0,71,74,1,0,0,0,72,70,1,0,0,0,72,73,1,0,0,0,73,76,
-        1,0,0,0,74,72,1,0,0,0,75,58,1,0,0,0,75,67,1,0,0,0,76,5,1,0,0,0,77,
-        86,5,2,0,0,78,79,5,3,0,0,79,80,5,4,0,0,80,81,5,5,0,0,81,82,5,6,0,
-        0,82,83,3,30,15,0,83,84,5,7,0,0,84,87,1,0,0,0,85,87,3,30,15,0,86,
-        78,1,0,0,0,86,85,1,0,0,0,87,89,1,0,0,0,88,90,3,32,16,0,89,88,1,0,
-        0,0,90,91,1,0,0,0,91,89,1,0,0,0,91,92,1,0,0,0,92,7,1,0,0,0,93,98,
-        5,8,0,0,94,97,5,33,0,0,95,97,3,10,5,0,96,94,1,0,0,0,96,95,1,0,0,
-        0,97,100,1,0,0,0,98,96,1,0,0,0,98,99,1,0,0,0,99,9,1,0,0,0,100,98,
-        1,0,0,0,101,110,5,9,0,0,102,109,5,33,0,0,103,105,3,32,16,0,104,103,
-        1,0,0,0,105,106,1,0,0,0,106,104,1,0,0,0,106,107,1,0,0,0,107,109,
-        1,0,0,0,108,102,1,0,0,0,108,104,1,0,0,0,109,112,1,0,0,0,110,108,
-        1,0,0,0,110,111,1,0,0,0,111,11,1,0,0,0,112,110,1,0,0,0,113,118,5,
-        10,0,0,114,117,5,33,0,0,115,117,3,14,7,0,116,114,1,0,0,0,116,115,
-        1,0,0,0,117,120,1,0,0,0,118,116,1,0,0,0,118,119,1,0,0,0,119,13,1,
-        0,0,0,120,118,1,0,0,0,121,130,5,9,0,0,122,129,5,33,0,0,123,125,3,
-        32,16,0,124,123,1,0,0,0,125,126,1,0,0,0,126,124,1,0,0,0,126,127,
-        1,0,0,0,127,129,1,0,0,0,128,122,1,0,0,0,128,124,1,0,0,0,129,132,
-        1,0,0,0,130,128,1,0,0,0,130,131,1,0,0,0,131,15,1,0,0,0,132,130,1,
-        0,0,0,133,138,5,11,0,0,134,137,5,33,0,0,135,137,3,18,9,0,136,134,
-        1,0,0,0,136,135,1,0,0,0,137,140,1,0,0,0,138,136,1,0,0,0,138,139,
-        1,0,0,0,139,17,1,0,0,0,140,138,1,0,0,0,141,150,5,9,0,0,142,149,5,
-        33,0,0,143,145,3,32,16,0,144,143,1,0,0,0,145,146,1,0,0,0,146,144,
-        1,0,0,0,146,147,1,0,0,0,147,149,1,0,0,0,148,142,1,0,0,0,148,144,
-        1,0,0,0,149,152,1,0,0,0,150,148,1,0,0,0,150,151,1,0,0,0,151,19,1,
-        0,0,0,152,150,1,0,0,0,153,158,5,12,0,0,154,157,5,33,0,0,155,157,
-        3,22,11,0,156,154,1,0,0,0,156,155,1,0,0,0,157,160,1,0,0,0,158,156,
-        1,0,0,0,158,159,1,0,0,0,159,21,1,0,0,0,160,158,1,0,0,0,161,170,5,
-        9,0,0,162,169,5,33,0,0,163,165,3,32,16,0,164,163,1,0,0,0,165,166,
-        1,0,0,0,166,164,1,0,0,0,166,167,1,0,0,0,167,169,1,0,0,0,168,162,
-        1,0,0,0,168,164,1,0,0,0,169,172,1,0,0,0,170,168,1,0,0,0,170,171,
-        1,0,0,0,171,23,1,0,0,0,172,170,1,0,0,0,173,175,5,13,0,0,174,176,
-        5,18,0,0,175,174,1,0,0,0,176,177,1,0,0,0,177,175,1,0,0,0,177,178,
-        1,0,0,0,178,183,1,0,0,0,179,182,5,33,0,0,180,182,3,28,14,0,181,179,
-        1,0,0,0,181,180,1,0,0,0,182,185,1,0,0,0,183,181,1,0,0,0,183,184,
-        1,0,0,0,184,25,1,0,0,0,185,183,1,0,0,0,186,187,5,14,0,0,187,191,
-        5,18,0,0,188,190,5,18,0,0,189,188,1,0,0,0,190,193,1,0,0,0,191,192,
-        1,0,0,0,191,189,1,0,0,0,192,198,1,0,0,0,193,191,1,0,0,0,194,197,
-        5,33,0,0,195,197,3,28,14,0,196,194,1,0,0,0,196,195,1,0,0,0,197,200,
-        1,0,0,0,198,196,1,0,0,0,198,199,1,0,0,0,199,27,1,0,0,0,200,198,1,
-        0,0,0,201,211,7,0,0,0,202,204,3,32,16,0,203,202,1,0,0,0,204,205,
-        1,0,0,0,205,203,1,0,0,0,205,206,1,0,0,0,206,210,1,0,0,0,207,210,
-        5,18,0,0,208,210,5,33,0,0,209,203,1,0,0,0,209,207,1,0,0,0,209,208,
-        1,0,0,0,210,213,1,0,0,0,211,209,1,0,0,0,211,212,1,0,0,0,212,225,
-        1,0,0,0,213,211,1,0,0,0,214,215,5,2,0,0,215,216,5,3,0,0,216,217,
-        5,4,0,0,217,218,3,32,16,0,218,220,5,7,0,0,219,221,3,32,16,0,220,
-        219,1,0,0,0,221,222,1,0,0,0,222,220,1,0,0,0,222,223,1,0,0,0,223,
-        225,1,0,0,0,224,201,1,0,0,0,224,214,1,0,0,0,225,29,1,0,0,0,226,227,
-        5,17,0,0,227,31,1,0,0,0,228,229,3,34,17,0,229,230,5,6,0,0,230,231,
-        3,36,18,0,231,33,1,0,0,0,232,233,7,1,0,0,233,35,1,0,0,0,234,235,
-        7,2,0,0,235,37,1,0,0,0,236,241,3,36,18,0,237,238,5,16,0,0,238,240,
-        3,36,18,0,239,237,1,0,0,0,240,243,1,0,0,0,241,239,1,0,0,0,241,242,
-        1,0,0,0,242,39,1,0,0,0,243,241,1,0,0,0,42,42,44,56,62,64,70,72,75,
-        86,91,96,98,106,108,110,116,118,126,128,130,136,138,146,148,150,
-        156,158,166,168,170,177,181,183,191,196,198,205,209,211,222,224,
-        241
+        8,14,1,15,1,15,1,16,1,16,1,16,1,16,1,17,1,17,1,18,1,18,1,18,1,18,
+        1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,3,18,248,8,18,1,19,
+        1,19,1,19,5,19,253,8,19,10,19,12,19,256,9,19,1,19,1,191,0,20,0,2,
+        4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,0,2,2,0,2,2,9,
+        9,1,0,17,20,297,0,44,1,0,0,0,2,56,1,0,0,0,4,75,1,0,0,0,6,77,1,0,
+        0,0,8,93,1,0,0,0,10,101,1,0,0,0,12,113,1,0,0,0,14,121,1,0,0,0,16,
+        133,1,0,0,0,18,141,1,0,0,0,20,153,1,0,0,0,22,161,1,0,0,0,24,173,
+        1,0,0,0,26,186,1,0,0,0,28,224,1,0,0,0,30,226,1,0,0,0,32,228,1,0,
+        0,0,34,232,1,0,0,0,36,247,1,0,0,0,38,249,1,0,0,0,40,43,3,2,1,0,41,
+        43,5,32,0,0,42,40,1,0,0,0,42,41,1,0,0,0,43,46,1,0,0,0,44,42,1,0,
+        0,0,44,45,1,0,0,0,45,47,1,0,0,0,46,44,1,0,0,0,47,48,5,0,0,1,48,1,
+        1,0,0,0,49,57,3,4,2,0,50,57,3,8,4,0,51,57,3,12,6,0,52,57,3,16,8,
+        0,53,57,3,20,10,0,54,57,3,24,12,0,55,57,3,26,13,0,56,49,1,0,0,0,
+        56,50,1,0,0,0,56,51,1,0,0,0,56,52,1,0,0,0,56,53,1,0,0,0,56,54,1,
+        0,0,0,56,55,1,0,0,0,57,3,1,0,0,0,58,59,5,1,0,0,59,64,5,17,0,0,60,
+        63,5,32,0,0,61,63,3,28,14,0,62,60,1,0,0,0,62,61,1,0,0,0,63,66,1,
+        0,0,0,64,62,1,0,0,0,64,65,1,0,0,0,65,76,1,0,0,0,66,64,1,0,0,0,67,
+        72,5,1,0,0,68,71,5,32,0,0,69,71,3,6,3,0,70,68,1,0,0,0,70,69,1,0,
+        0,0,71,74,1,0,0,0,72,70,1,0,0,0,72,73,1,0,0,0,73,76,1,0,0,0,74,72,
+        1,0,0,0,75,58,1,0,0,0,75,67,1,0,0,0,76,5,1,0,0,0,77,86,5,2,0,0,78,
+        79,5,3,0,0,79,80,5,4,0,0,80,81,5,5,0,0,81,82,5,6,0,0,82,83,3,30,
+        15,0,83,84,5,7,0,0,84,87,1,0,0,0,85,87,3,30,15,0,86,78,1,0,0,0,86,
+        85,1,0,0,0,87,89,1,0,0,0,88,90,3,32,16,0,89,88,1,0,0,0,90,91,1,0,
+        0,0,91,89,1,0,0,0,91,92,1,0,0,0,92,7,1,0,0,0,93,98,5,8,0,0,94,97,
+        5,32,0,0,95,97,3,10,5,0,96,94,1,0,0,0,96,95,1,0,0,0,97,100,1,0,0,
+        0,98,96,1,0,0,0,98,99,1,0,0,0,99,9,1,0,0,0,100,98,1,0,0,0,101,110,
+        5,9,0,0,102,109,5,32,0,0,103,105,3,32,16,0,104,103,1,0,0,0,105,106,
+        1,0,0,0,106,104,1,0,0,0,106,107,1,0,0,0,107,109,1,0,0,0,108,102,
+        1,0,0,0,108,104,1,0,0,0,109,112,1,0,0,0,110,108,1,0,0,0,110,111,
+        1,0,0,0,111,11,1,0,0,0,112,110,1,0,0,0,113,118,5,10,0,0,114,117,
+        5,32,0,0,115,117,3,14,7,0,116,114,1,0,0,0,116,115,1,0,0,0,117,120,
+        1,0,0,0,118,116,1,0,0,0,118,119,1,0,0,0,119,13,1,0,0,0,120,118,1,
+        0,0,0,121,130,5,9,0,0,122,129,5,32,0,0,123,125,3,32,16,0,124,123,
+        1,0,0,0,125,126,1,0,0,0,126,124,1,0,0,0,126,127,1,0,0,0,127,129,
+        1,0,0,0,128,122,1,0,0,0,128,124,1,0,0,0,129,132,1,0,0,0,130,128,
+        1,0,0,0,130,131,1,0,0,0,131,15,1,0,0,0,132,130,1,0,0,0,133,138,5,
+        11,0,0,134,137,5,32,0,0,135,137,3,18,9,0,136,134,1,0,0,0,136,135,
+        1,0,0,0,137,140,1,0,0,0,138,136,1,0,0,0,138,139,1,0,0,0,139,17,1,
+        0,0,0,140,138,1,0,0,0,141,150,5,9,0,0,142,149,5,32,0,0,143,145,3,
+        32,16,0,144,143,1,0,0,0,145,146,1,0,0,0,146,144,1,0,0,0,146,147,
+        1,0,0,0,147,149,1,0,0,0,148,142,1,0,0,0,148,144,1,0,0,0,149,152,
+        1,0,0,0,150,148,1,0,0,0,150,151,1,0,0,0,151,19,1,0,0,0,152,150,1,
+        0,0,0,153,158,5,12,0,0,154,157,5,32,0,0,155,157,3,22,11,0,156,154,
+        1,0,0,0,156,155,1,0,0,0,157,160,1,0,0,0,158,156,1,0,0,0,158,159,
+        1,0,0,0,159,21,1,0,0,0,160,158,1,0,0,0,161,170,5,9,0,0,162,169,5,
+        32,0,0,163,165,3,32,16,0,164,163,1,0,0,0,165,166,1,0,0,0,166,164,
+        1,0,0,0,166,167,1,0,0,0,167,169,1,0,0,0,168,162,1,0,0,0,168,164,
+        1,0,0,0,169,172,1,0,0,0,170,168,1,0,0,0,170,171,1,0,0,0,171,23,1,
+        0,0,0,172,170,1,0,0,0,173,175,5,13,0,0,174,176,5,17,0,0,175,174,
+        1,0,0,0,176,177,1,0,0,0,177,175,1,0,0,0,177,178,1,0,0,0,178,183,
+        1,0,0,0,179,182,5,32,0,0,180,182,3,28,14,0,181,179,1,0,0,0,181,180,
+        1,0,0,0,182,185,1,0,0,0,183,181,1,0,0,0,183,184,1,0,0,0,184,25,1,
+        0,0,0,185,183,1,0,0,0,186,187,5,14,0,0,187,191,5,17,0,0,188,190,
+        5,17,0,0,189,188,1,0,0,0,190,193,1,0,0,0,191,192,1,0,0,0,191,189,
+        1,0,0,0,192,198,1,0,0,0,193,191,1,0,0,0,194,197,5,32,0,0,195,197,
+        3,28,14,0,196,194,1,0,0,0,196,195,1,0,0,0,197,200,1,0,0,0,198,196,
+        1,0,0,0,198,199,1,0,0,0,199,27,1,0,0,0,200,198,1,0,0,0,201,211,7,
+        0,0,0,202,204,3,32,16,0,203,202,1,0,0,0,204,205,1,0,0,0,205,203,
+        1,0,0,0,205,206,1,0,0,0,206,210,1,0,0,0,207,210,5,17,0,0,208,210,
+        5,32,0,0,209,203,1,0,0,0,209,207,1,0,0,0,209,208,1,0,0,0,210,213,
+        1,0,0,0,211,209,1,0,0,0,211,212,1,0,0,0,212,225,1,0,0,0,213,211,
+        1,0,0,0,214,215,5,2,0,0,215,216,5,3,0,0,216,217,5,4,0,0,217,218,
+        3,32,16,0,218,220,5,7,0,0,219,221,3,32,16,0,220,219,1,0,0,0,221,
+        222,1,0,0,0,222,220,1,0,0,0,222,223,1,0,0,0,223,225,1,0,0,0,224,
+        201,1,0,0,0,224,214,1,0,0,0,225,29,1,0,0,0,226,227,5,16,0,0,227,
+        31,1,0,0,0,228,229,3,34,17,0,229,230,5,6,0,0,230,231,3,36,18,0,231,
+        33,1,0,0,0,232,233,7,1,0,0,233,35,1,0,0,0,234,248,5,21,0,0,235,248,
+        5,17,0,0,236,248,5,22,0,0,237,248,5,23,0,0,238,248,5,24,0,0,239,
+        248,5,26,0,0,240,248,5,27,0,0,241,248,5,28,0,0,242,248,5,18,0,0,
+        243,248,5,19,0,0,244,248,5,20,0,0,245,248,5,16,0,0,246,248,3,38,
+        19,0,247,234,1,0,0,0,247,235,1,0,0,0,247,236,1,0,0,0,247,237,1,0,
+        0,0,247,238,1,0,0,0,247,239,1,0,0,0,247,240,1,0,0,0,247,241,1,0,
+        0,0,247,242,1,0,0,0,247,243,1,0,0,0,247,244,1,0,0,0,247,245,1,0,
+        0,0,247,246,1,0,0,0,248,37,1,0,0,0,249,254,5,17,0,0,250,251,5,15,
+        0,0,251,253,5,17,0,0,252,250,1,0,0,0,253,256,1,0,0,0,254,252,1,0,
+        0,0,254,255,1,0,0,0,255,39,1,0,0,0,256,254,1,0,0,0,43,42,44,56,62,
+        64,70,72,75,86,91,96,98,106,108,110,116,118,126,128,130,136,138,
+        146,148,150,156,158,166,168,170,177,181,183,191,196,198,205,209,
+        211,222,224,247,254
     ]
 
 class RouterosParser ( Parser ):
@@ -116,17 +123,16 @@ class RouterosParser ( Parser ):
     literalNames = [ "<INVALID>", "'/interface ethernet'", "'set'", "'['", 
                      "'find'", "'default-name'", "'='", "']'", "'/interface vlan'", 
                      "'add'", "'/ip address'", "'/ipv6 address'", "'/routing bgp connection'", 
-                     "'/interface'", "'/'", "'local.address'", "','" ]
+                     "'/interface'", "'/'", "','" ]
 
     symbolicNames = [ "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
-                      "<INVALID>", "INTERFACE_NAME", "WORD", "COMPLEX_WORD", 
-                      "COMPLEX_WORD2", "COMPLEX_WORD3", "STRING", "NUMBER", 
-                      "IP_ADDRESS", "IPV6_ADDRESS", "IPV6_SHORTHAND", "NETWORK", 
-                      "IPV6_NETWORK", "BOOLEAN", "COMMENT", "WS", "CONTINUED_LINE", 
-                      "NEWLINE" ]
+                      "INTERFACE_NAME", "WORD", "COMPLEX_WORD", "COMPLEX_WORD2", 
+                      "COMPLEX_WORD3", "STRING", "NUMBER", "IP_ADDRESS", 
+                      "IPV6_ADDRESS", "IPV6_SHORTHAND", "NETWORK", "IPV6_NETWORK", 
+                      "BOOLEAN", "COMMENT", "WS", "CONTINUED_LINE", "NEWLINE" ]
 
     RULE_config = 0
     RULE_section = 1
@@ -172,24 +178,23 @@ class RouterosParser ( Parser ):
     T__12=13
     T__13=14
     T__14=15
-    T__15=16
-    INTERFACE_NAME=17
-    WORD=18
-    COMPLEX_WORD=19
-    COMPLEX_WORD2=20
-    COMPLEX_WORD3=21
-    STRING=22
-    NUMBER=23
-    IP_ADDRESS=24
-    IPV6_ADDRESS=25
-    IPV6_SHORTHAND=26
-    NETWORK=27
-    IPV6_NETWORK=28
-    BOOLEAN=29
-    COMMENT=30
-    WS=31
-    CONTINUED_LINE=32
-    NEWLINE=33
+    INTERFACE_NAME=16
+    WORD=17
+    COMPLEX_WORD=18
+    COMPLEX_WORD2=19
+    COMPLEX_WORD3=20
+    STRING=21
+    NUMBER=22
+    IP_ADDRESS=23
+    IPV6_ADDRESS=24
+    IPV6_SHORTHAND=25
+    NETWORK=26
+    IPV6_NETWORK=27
+    BOOLEAN=28
+    COMMENT=29
+    WS=30
+    CONTINUED_LINE=31
+    NEWLINE=32
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -253,7 +258,7 @@ class RouterosParser ( Parser ):
             self.state = 44
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while (((_la) & ~0x3f) == 0 and ((1 << _la) & 8589966594) != 0):
+            while (((_la) & ~0x3f) == 0 and ((1 << _la) & 4294999298) != 0):
                 self.state = 42
                 self._errHandler.sync(self)
                 token = self._input.LA(1)
@@ -261,7 +266,7 @@ class RouterosParser ( Parser ):
                     self.state = 40
                     self.section()
                     pass
-                elif token in [33]:
+                elif token in [32]:
                     self.state = 41
                     self.match(RouterosParser.NEWLINE)
                     pass
@@ -465,7 +470,7 @@ class RouterosParser ( Parser ):
                         self.state = 62
                         self._errHandler.sync(self)
                         token = self._input.LA(1)
-                        if token in [33]:
+                        if token in [32]:
                             self.state = 60
                             self.match(RouterosParser.NEWLINE)
                             pass
@@ -494,7 +499,7 @@ class RouterosParser ( Parser ):
                         self.state = 70
                         self._errHandler.sync(self)
                         token = self._input.LA(1)
-                        if token in [33]:
+                        if token in [32]:
                             self.state = 68
                             self.match(RouterosParser.NEWLINE)
                             pass
@@ -585,7 +590,7 @@ class RouterosParser ( Parser ):
                 self.state = 83
                 self.match(RouterosParser.T__6)
                 pass
-            elif token in [17]:
+            elif token in [16]:
                 self.state = 85
                 self.interfaceName()
                 pass
@@ -601,7 +606,7 @@ class RouterosParser ( Parser ):
                 self.state = 91 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 3964928) != 0)):
+                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 1966080) != 0)):
                     break
 
         except RecognitionException as re:
@@ -669,7 +674,7 @@ class RouterosParser ( Parser ):
                     self.state = 96
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 94
                         self.match(RouterosParser.NEWLINE)
                         pass
@@ -749,11 +754,11 @@ class RouterosParser ( Parser ):
                     self.state = 108
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 102
                         self.match(RouterosParser.NEWLINE)
                         pass
-                    elif token in [15, 18, 19, 20, 21]:
+                    elif token in [17, 18, 19, 20]:
                         self.state = 104 
                         self._errHandler.sync(self)
                         _alt = 1
@@ -841,7 +846,7 @@ class RouterosParser ( Parser ):
                     self.state = 116
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 114
                         self.match(RouterosParser.NEWLINE)
                         pass
@@ -921,11 +926,11 @@ class RouterosParser ( Parser ):
                     self.state = 128
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 122
                         self.match(RouterosParser.NEWLINE)
                         pass
-                    elif token in [15, 18, 19, 20, 21]:
+                    elif token in [17, 18, 19, 20]:
                         self.state = 124 
                         self._errHandler.sync(self)
                         _alt = 1
@@ -1013,7 +1018,7 @@ class RouterosParser ( Parser ):
                     self.state = 136
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 134
                         self.match(RouterosParser.NEWLINE)
                         pass
@@ -1093,11 +1098,11 @@ class RouterosParser ( Parser ):
                     self.state = 148
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 142
                         self.match(RouterosParser.NEWLINE)
                         pass
-                    elif token in [15, 18, 19, 20, 21]:
+                    elif token in [17, 18, 19, 20]:
                         self.state = 144 
                         self._errHandler.sync(self)
                         _alt = 1
@@ -1185,7 +1190,7 @@ class RouterosParser ( Parser ):
                     self.state = 156
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 154
                         self.match(RouterosParser.NEWLINE)
                         pass
@@ -1265,11 +1270,11 @@ class RouterosParser ( Parser ):
                     self.state = 168
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 162
                         self.match(RouterosParser.NEWLINE)
                         pass
-                    elif token in [15, 18, 19, 20, 21]:
+                    elif token in [17, 18, 19, 20]:
                         self.state = 164 
                         self._errHandler.sync(self)
                         _alt = 1
@@ -1365,7 +1370,7 @@ class RouterosParser ( Parser ):
                 self.state = 177 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==18):
+                if not (_la==17):
                     break
 
             self.state = 183
@@ -1376,7 +1381,7 @@ class RouterosParser ( Parser ):
                     self.state = 181
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 179
                         self.match(RouterosParser.NEWLINE)
                         pass
@@ -1475,7 +1480,7 @@ class RouterosParser ( Parser ):
                     self.state = 196
                     self._errHandler.sync(self)
                     token = self._input.LA(1)
-                    if token in [33]:
+                    if token in [32]:
                         self.state = 194
                         self.match(RouterosParser.NEWLINE)
                         pass
@@ -1626,7 +1631,7 @@ class RouterosParser ( Parser ):
                     self.state = 222 
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
-                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 3964928) != 0)):
+                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 1966080) != 0)):
                         break
 
                 pass
@@ -1792,7 +1797,7 @@ class RouterosParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 232
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 3964928) != 0)):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 1966080) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1816,6 +1821,9 @@ class RouterosParser ( Parser ):
         def STRING(self):
             return self.getToken(RouterosParser.STRING, 0)
 
+        def WORD(self):
+            return self.getToken(RouterosParser.WORD, 0)
+
         def NUMBER(self):
             return self.getToken(RouterosParser.NUMBER, 0)
 
@@ -1834,9 +1842,6 @@ class RouterosParser ( Parser ):
         def BOOLEAN(self):
             return self.getToken(RouterosParser.BOOLEAN, 0)
 
-        def WORD(self):
-            return self.getToken(RouterosParser.WORD, 0)
-
         def COMPLEX_WORD(self):
             return self.getToken(RouterosParser.COMPLEX_WORD, 0)
 
@@ -1848,6 +1853,10 @@ class RouterosParser ( Parser ):
 
         def INTERFACE_NAME(self):
             return self.getToken(RouterosParser.INTERFACE_NAME, 0)
+
+        def list_(self):
+            return self.getTypedRuleContext(RouterosParser.ListContext,0)
+
 
         def getRuleIndex(self):
             return RouterosParser.RULE_value
@@ -1873,16 +1882,89 @@ class RouterosParser ( Parser ):
 
         localctx = RouterosParser.ValueContext(self, self._ctx, self.state)
         self.enterRule(localctx, 36, self.RULE_value)
-        self._la = 0 # Token type
         try:
-            self.enterOuterAlt(localctx, 1)
-            self.state = 234
-            _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 1006501888) != 0)):
-                self._errHandler.recoverInline(self)
-            else:
-                self._errHandler.reportMatch(self)
-                self.consume()
+            self.state = 247
+            self._errHandler.sync(self)
+            la_ = self._interp.adaptivePredict(self._input,41,self._ctx)
+            if la_ == 1:
+                self.enterOuterAlt(localctx, 1)
+                self.state = 234
+                self.match(RouterosParser.STRING)
+                pass
+
+            elif la_ == 2:
+                self.enterOuterAlt(localctx, 2)
+                self.state = 235
+                self.match(RouterosParser.WORD)
+                pass
+
+            elif la_ == 3:
+                self.enterOuterAlt(localctx, 3)
+                self.state = 236
+                self.match(RouterosParser.NUMBER)
+                pass
+
+            elif la_ == 4:
+                self.enterOuterAlt(localctx, 4)
+                self.state = 237
+                self.match(RouterosParser.IP_ADDRESS)
+                pass
+
+            elif la_ == 5:
+                self.enterOuterAlt(localctx, 5)
+                self.state = 238
+                self.match(RouterosParser.IPV6_ADDRESS)
+                pass
+
+            elif la_ == 6:
+                self.enterOuterAlt(localctx, 6)
+                self.state = 239
+                self.match(RouterosParser.NETWORK)
+                pass
+
+            elif la_ == 7:
+                self.enterOuterAlt(localctx, 7)
+                self.state = 240
+                self.match(RouterosParser.IPV6_NETWORK)
+                pass
+
+            elif la_ == 8:
+                self.enterOuterAlt(localctx, 8)
+                self.state = 241
+                self.match(RouterosParser.BOOLEAN)
+                pass
+
+            elif la_ == 9:
+                self.enterOuterAlt(localctx, 9)
+                self.state = 242
+                self.match(RouterosParser.COMPLEX_WORD)
+                pass
+
+            elif la_ == 10:
+                self.enterOuterAlt(localctx, 10)
+                self.state = 243
+                self.match(RouterosParser.COMPLEX_WORD2)
+                pass
+
+            elif la_ == 11:
+                self.enterOuterAlt(localctx, 11)
+                self.state = 244
+                self.match(RouterosParser.COMPLEX_WORD3)
+                pass
+
+            elif la_ == 12:
+                self.enterOuterAlt(localctx, 12)
+                self.state = 245
+                self.match(RouterosParser.INTERFACE_NAME)
+                pass
+
+            elif la_ == 13:
+                self.enterOuterAlt(localctx, 13)
+                self.state = 246
+                self.list_()
+                pass
+
+
         except RecognitionException as re:
             localctx.exception = re
             self._errHandler.reportError(self, re)
@@ -1899,12 +1981,11 @@ class RouterosParser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def value(self, i:int=None):
+        def WORD(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(RouterosParser.ValueContext)
+                return self.getTokens(RouterosParser.WORD)
             else:
-                return self.getTypedRuleContext(RouterosParser.ValueContext,i)
-
+                return self.getToken(RouterosParser.WORD, i)
 
         def getRuleIndex(self):
             return RouterosParser.RULE_list
@@ -1933,17 +2014,17 @@ class RouterosParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 236
-            self.value()
-            self.state = 241
+            self.state = 249
+            self.match(RouterosParser.WORD)
+            self.state = 254
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while _la==16:
-                self.state = 237
-                self.match(RouterosParser.T__15)
-                self.state = 238
-                self.value()
-                self.state = 243
+            while _la==15:
+                self.state = 250
+                self.match(RouterosParser.T__14)
+                self.state = 251
+                self.match(RouterosParser.WORD)
+                self.state = 256
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
