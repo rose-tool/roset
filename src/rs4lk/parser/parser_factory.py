@@ -8,7 +8,7 @@ from ..foundation.factory.Factory import Factory
 class ParserFactory(Factory):
 
     def __init__(self) -> None:
-        self.module_template: str = "rs4lk.parser.%s.antlr4"
+        self.module_template: str = "rs4lk.parser.%s.antlr4_parser"
         self.name_template: str = "%sParser"
 
     def get_class_from_os_name(self, os_name: str) -> Parser.__class__:
@@ -18,7 +18,7 @@ class ParserFactory(Factory):
 class LexerFactory(Factory):
 
     def __init__(self) -> None:
-        self.module_template: str = "rs4lk.parser.%s.antlr4"
+        self.module_template: str = "rs4lk.parser.%s.antlr4_parser"
         self.name_template: str = "%sLexer"
 
     def get_class_from_os_name(self, os_name: str) -> Lexer.__class__:

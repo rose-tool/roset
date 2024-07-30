@@ -40,10 +40,12 @@ class VlanInterface(Interface):
 
 
 class BgpConnection:
-    def __init__(self, remote_as: str, local_address: str, remote_address: str):
-        self.remote_as: str = remote_as
-        self.local_address: ipaddress.IPv4Interface | ipaddress.IPv6Interface = ipaddress.ip_interface(local_address)
-        self.remote_address = ipaddress.ip_interface(remote_address)
+    def __init__(self, local_address: str | None, remote_address: str | None, remote_as: str | None):
+        self.remote_as: str | None = remote_as
+        self.local_address: ipaddress.IPv4Interface | ipaddress.IPv6Interface = ipaddress.ip_interface(
+            local_address) if local_address else None
+        self.remote_address: ipaddress.IPv4Interface | ipaddress.IPv6Interface = ipaddress.ip_interface(
+            remote_address) if remote_address else None
 
     def __str__(self) -> str:
         return (f"BgpSession(remote_as={self.remote_as}, local_ip='{self.local_address}', "

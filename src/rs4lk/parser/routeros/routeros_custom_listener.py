@@ -1,5 +1,5 @@
-from rs4lk.parser.routeros.antlr4.RouterosListener import RouterosListener
-from rs4lk.parser.routeros.antlr4.RouterosParser import RouterosParser
+from rs4lk.parser.routeros.antlr4_parser.RouterosListener import RouterosListener
+from rs4lk.parser.routeros.antlr4_parser.RouterosParser import RouterosParser
 from rs4lk.configuration.router_configuration import RouterConfiguration, VlanInterface, Interface, BgpConnection
 
 
@@ -68,4 +68,4 @@ class RouterosCustomListener(RouterosListener):
                     remote_as = value
 
         if remote_as and local_address and remote_address:
-            self.configuration.peerings.append(BgpConnection(remote_as, local_address, remote_address))
+            self.configuration.peerings.append(BgpConnection(local_address, remote_address, remote_as))
