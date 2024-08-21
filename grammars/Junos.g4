@@ -11,13 +11,18 @@ entity
     | interface
     | bgpConfig
     | otherConfig
+    | localAs
     ;
 
-interface: 'interfaces' (interfaceIp | vlanId | otherConfig);
-interfaceIp: interfaceName 'unit' WORD family (WORD+ | 'address' ipNetwork) (value+)?;
-vlanId: interfaceName 'unit' WORD 'vlan-id' WORD;
+localAs: 'routing-options autonomous-system' WORD;
+interface: 'interfaces' interfaceName (interfaceIp | vlanId | otherInterfaceConfig) NEWLINE;
+interfaceIp: unit family 'address' ipNetwork (value+)?;
+otherInterfaceConfig: (unit family (WORD)+ | value+);
+vlanId: unit 'vlan-id' WORD;
 
 interfaceName: WORD;
+
+unit: 'unit ' WORD;
 
 family: 'family' ('inet' | 'inet6');
 
@@ -33,11 +38,11 @@ remoteAs: 'peer-as' asNum;
 
 asNum: WORD;
 
-otherBgpConf: WORD+;
+otherBgpConf: WORD (WS WORD)+;
 
 groupName: WORD;
 
-otherConfig: (value | family)+;
+otherConfig: (family | value)+;
 
 ipNetwork: (NETWORK | IPV6_NETWORK | WORD | IPV6_ADDRESS);
 

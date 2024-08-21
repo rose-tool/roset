@@ -1,4 +1,4 @@
-# Generated from Junos.g4 by ANTLR 4.13.1
+# Generated from Junos.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .JunosParser import JunosParser
@@ -24,6 +24,11 @@ class JunosVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by JunosParser#localAs.
+    def visitLocalAs(self, ctx:JunosParser.LocalAsContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by JunosParser#interface.
     def visitInterface(self, ctx:JunosParser.InterfaceContext):
         return self.visitChildren(ctx)
@@ -34,6 +39,11 @@ class JunosVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by JunosParser#otherInterfaceConfig.
+    def visitOtherInterfaceConfig(self, ctx:JunosParser.OtherInterfaceConfigContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by JunosParser#vlanId.
     def visitVlanId(self, ctx:JunosParser.VlanIdContext):
         return self.visitChildren(ctx)
@@ -41,6 +51,11 @@ class JunosVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by JunosParser#interfaceName.
     def visitInterfaceName(self, ctx:JunosParser.InterfaceNameContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by JunosParser#unit.
+    def visitUnit(self, ctx:JunosParser.UnitContext):
         return self.visitChildren(ctx)
 
 

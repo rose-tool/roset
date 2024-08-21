@@ -1,4 +1,4 @@
-# Generated from Junos.g4 by ANTLR 4.13.1
+# Generated from Junos.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .JunosParser import JunosParser
@@ -35,6 +35,15 @@ class JunosListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by JunosParser#localAs.
+    def enterLocalAs(self, ctx:JunosParser.LocalAsContext):
+        pass
+
+    # Exit a parse tree produced by JunosParser#localAs.
+    def exitLocalAs(self, ctx:JunosParser.LocalAsContext):
+        pass
+
+
     # Enter a parse tree produced by JunosParser#interface.
     def enterInterface(self, ctx:JunosParser.InterfaceContext):
         pass
@@ -53,6 +62,15 @@ class JunosListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by JunosParser#otherInterfaceConfig.
+    def enterOtherInterfaceConfig(self, ctx:JunosParser.OtherInterfaceConfigContext):
+        pass
+
+    # Exit a parse tree produced by JunosParser#otherInterfaceConfig.
+    def exitOtherInterfaceConfig(self, ctx:JunosParser.OtherInterfaceConfigContext):
+        pass
+
+
     # Enter a parse tree produced by JunosParser#vlanId.
     def enterVlanId(self, ctx:JunosParser.VlanIdContext):
         pass
@@ -68,6 +86,15 @@ class JunosListener(ParseTreeListener):
 
     # Exit a parse tree produced by JunosParser#interfaceName.
     def exitInterfaceName(self, ctx:JunosParser.InterfaceNameContext):
+        pass
+
+
+    # Enter a parse tree produced by JunosParser#unit.
+    def enterUnit(self, ctx:JunosParser.UnitContext):
+        pass
+
+    # Exit a parse tree produced by JunosParser#unit.
+    def exitUnit(self, ctx:JunosParser.UnitContext):
         pass
 
 

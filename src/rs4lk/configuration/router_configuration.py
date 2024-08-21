@@ -4,36 +4,30 @@ import ipaddress
 class Interface:
     def __init__(self, name: str):
         self.name: str = name
-        self.ipv4_addresses: list[ipaddress.IPv4Interface] = []
-        self.ipv6_addresses: list[ipaddress.IPv6Interface] = []
+        self.ip_addresses: set[ipaddress.IPv4Interface | ipaddress.IPv6Interface] = set()
 
     def add_address(self, address: str) -> None:
         ip_address = ipaddress.ip_interface(address)
-        if ip_address.version == 4:
-            self.ipv4_addresses.append(ip_address)
-        else:
-            self.ipv6_addresses.append(ip_address)
+        self.ip_addresses.add(ip_address)
 
     def __str__(self) -> str:
-        ipv4_str = ", ".join(str(addr) for addr in self.ipv4_addresses)
-        ipv6_str = ", ".join(str(addr) for addr in self.ipv6_addresses)
-        return f"Interface(name={self.name}, ipv4_addresses=[{ipv4_str}], ipv6_addresses=[{ipv6_str}])"
+        ip_str = ", ".join(str(addr) for addr in self.ip_addresses)
+        return f"Interface(name={self.name}, ip_addresses=[{ip_str}])"
 
     def __repr__(self) -> str:
         return str(self)
 
 
 class VlanInterface(Interface):
-    def __init__(self, name, physical_interface: str, vlan_id: str):
+    def __init__(self, name: str, physical_interface: str, vlan_id: str):
         super().__init__(name)
         self.physical_interface: str = physical_interface
         self.vlan_id: str = vlan_id
 
     def __str__(self) -> str:
-        ipv4_str = ", ".join(str(addr) for addr in self.ipv4_addresses)
-        ipv6_str = ", ".join(str(addr) for addr in self.ipv6_addresses)
+        ip_str = ", ".join(str(addr) for addr in self.ip_addresses)
         return (f"VlanInterface(name={self.name}, physical_interface={self.physical_interface}, "
-                f"vlan_id={self.vlan_id}, ipv4_addresses=[{ipv4_str}], ipv6_addresses=[{ipv6_str}])")
+                f"vlan_id={self.vlan_id}, ip_addresses=[{ip_str}])")
 
     def __repr__(self) -> str:
         return str(self)
@@ -58,8 +52,8 @@ class BgpConnection:
 
 class RouterConfiguration:
     def __init__(self, config_path: str):
-        self._config_path = config_path
+        self.path = config_path
         self.interfaces: dict[str, Interface] = {}
-        self.peerings: list[BgpConnection] = []
+        self.peerings: dict[str, BgpConnection] = {}
         self.local_as = None
-        self.rule_names = None
+        self._rule_names = None

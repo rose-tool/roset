@@ -20,7 +20,7 @@ class ConfigurationParser:
         stream = CommonTokenStream(lexer)
         parser = parser_class(stream)
         tree = parser.config()
-        router_configuration.rule_names = parser.ruleNames
+        router_configuration._rule_names = parser.ruleNames
 
         # Use a custom listener to walk the tree and populate the configuration
         listener = listener_class(router_configuration)

@@ -47,7 +47,7 @@ HEX_QUAD : HEX_DIGIT HEX_DIGIT? HEX_DIGIT? HEX_DIGIT?;
 HEX_DIGIT : [0-9a-fA-F];
 
 COMMENT : '#' .*? '\r'? '\n' -> skip;
-WS: [ \t\r\n]+ -> skip;
+WS: ' '+ -> skip;
 CONTINUED_LINE: '\\' NEWLINE -> skip;
 NEWLINE : '\r'? '\n';
 ID: [a-zA-Z][a-zA-Z0-9_-]*;
