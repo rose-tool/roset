@@ -1,4 +1,15 @@
-import ipaddress
+import base64
+import hashlib
+import re
+
+
+# General Helpers
+def urlsafe_hash(string: str) -> str:
+    string = re.sub(r'[^\x00-\x7F]+', '', string)
+    return base64.urlsafe_b64encode(hashlib.md5(string.encode('utf-8', errors='ignore')).digest())[:-2] \
+        .decode('utf-8') \
+        .replace('-', '').replace('_', '')
+
 
 # Network IP Helpers
 def aggregate_v4_6_networks(nets: dict[int, set]) -> None:

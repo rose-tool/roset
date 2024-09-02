@@ -84,11 +84,6 @@ class RouterosVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by RouterosParser#interfaceName.
-    def visitInterfaceName(self, ctx:RouterosParser.InterfaceNameContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by RouterosParser#keyValuePair.
     def visitKeyValuePair(self, ctx:RouterosParser.KeyValuePairContext):
         return self.visitChildren(ctx)
@@ -96,6 +91,11 @@ class RouterosVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by RouterosParser#key.
     def visitKey(self, ctx:RouterosParser.KeyContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by RouterosParser#interfaceName.
+    def visitInterfaceName(self, ctx:RouterosParser.InterfaceNameContext):
         return self.visitChildren(ctx)
 
 

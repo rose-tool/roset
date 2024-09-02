@@ -1,10 +1,7 @@
 kathara>=3.7.0
-numpy~=1.26.4
-pybatfish
 coloredlogs
 requests
 sortedcontainers
 mrtparse
-cisco-config-parser
 antlr4-python3-runtime
 antlr4-tools

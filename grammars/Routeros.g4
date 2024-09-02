@@ -2,7 +2,6 @@ grammar Routeros;
 
 import common;
 
-// The entry point for the parser
 config : (section | NEWLINE)* EOF;
 
 section
@@ -69,4 +68,10 @@ otherConfig
     | 'set' '[' 'find' keyValuePair ']' keyValuePair+
     ;
 
-interfaceName : INTERFACE_NAME;
+keyValuePair
+    : key '=' value
+    ;
+
+key : (WORD | COMPLEX_WORD | COMPLEX_WORD2 | COMPLEX_WORD3);
+
+interfaceName : WORD;

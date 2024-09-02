@@ -1,20 +1,14 @@
 import ipaddress
 import logging
-import os
 import re
-import tempfile
 
 from Kathara.model.Lab import Lab
-from cisco_config_parser.cisco_config_parser import ConfigParser
 
 from ...foundation.configuration.vendor_configuration import VendorConfiguration
-from ...foundation.exceptions import ConfigError
-from ...model.bgp_session import BgpSession
+from ...model.interface import Interface, VlanInterface
 
 
-class IosXrConfiguration(VendorConfiguration):
-    __slots__ = ['_cisco_parser']
-
+class IosxrConfiguration(VendorConfiguration):
     CONFIG_FILE_PATH: str = "disk0:/startup-config.cfg"
 
     CLI_COMMAND: str = "/pkg/bin/xr_cli \"{command}\""
@@ -40,127 +34,34 @@ class IosXrConfiguration(VendorConfiguration):
         r"(%.+)?/\d+\s*))"
     )
 
-    def _init(self) -> None:
-        # Cisco Parser needs a txt file, create a temporary one and read it back
-        (fd, temp_file_path) = tempfile.mkstemp(suffix='.txt')
-        with open(temp_file_path, 'w') as temp_file:
-            temp_file.writelines(self._lines)
-        self._cisco_parser: ConfigParser = ConfigParser(method="file", content=temp_file_path)
-
-        self._parse_ipv6_interface_addresses()
-        self._parse_ipv6_sessions()
-        self._remap_interfaces()
-
-        os.remove(temp_file_path)
-
-    def _parse_ipv6_interface_addresses(self) -> None:
-        logging.info("Inferring IPv6 interface addresses.")
-
-        ipv6_addrs = {}
-        for iface_block in self._cisco_parser.find_parent_child("^interface"):
-            (_, iface_name) = iface_block.parent.split('interface ')
-            iface_name = iface_name.strip()
-
-            for child in iface_block.child:
-                if 'ipv6 address' in child:
-                    (_, addr_part) = child.split('ipv6 address ')
-                    addr = ipaddress.IPv6Interface(addr_part)
-
-                    if iface_name not in ipv6_addrs:
-                        ipv6_addrs[iface_name] = set()
-
-                    ipv6_addrs[iface_name].add(addr)
-
-        for iface_name, addrs in ipv6_addrs.items():
-            self.interfaces[iface_name]['All_Prefixes'].extend(addrs)
-
-        logging.debug(f"Resulting interfaces: {self.interfaces}")
-
-    def _parse_ipv6_sessions(self) -> None:
-        logging.info("Inferring IPv6 BGP sessions.")
-
-        local_as = self.get_local_as()
-
-        router_bgp_block = self._cisco_parser.find_parent_child("^router bgp").pop(0)
-
-        ipv6_bgp_sessions = []
-        last_neighbor_idx = -1
-        for child in router_bgp_block.child:
-            if 'neighbor' in child:
-                ipv6_bgp_sessions.append({'local_as': local_as, 'is_v6': True})
-                last_neighbor_idx += 1
-
-                (_, str_addr) = child.split('neighbor ')
-                try:
-                    addr = ipaddress.IPv6Address(str_addr)
-                except ipaddress.AddressValueError:
-                    ipv6_bgp_sessions[last_neighbor_idx]['is_v6'] = False
-                    continue
-
-                ipv6_bgp_sessions[last_neighbor_idx]['remote_ip'] = addr
-            elif 'remote-as' in child:
-                (_, str_peer) = child.split('remote-as ')
-                peer = int(str_peer)
-
-                ipv6_bgp_sessions[last_neighbor_idx]['remote_as'] = peer
-
-        # Filter out non-valid sessions
-        ipv6_bgp_sessions = filter(
-            lambda x: 'remote_as' in x and x['is_v6'] and
-                      self._batfish_config.is_valid_session(x['local_as'], x['remote_as']),
-            ipv6_bgp_sessions
-        )
-
-        for session in ipv6_bgp_sessions:
-            remote_as = session['remote_as']
-
-            if remote_as not in self.bgp_sessions:
-                self.bgp_sessions[remote_as] = BgpSession(local_as, remote_as)
-
-            self.bgp_sessions[remote_as].add_peering(None, session['remote_ip'], None)
-
-        logging.debug(f"Resulting sessions: {self.bgp_sessions}")
-
-    def _get_bgp_local_as_vendor(self) -> int:
-        router_bgp_blocks = self._cisco_parser.find_parent_child("^router bgp")
-        if not router_bgp_blocks:
-            raise ConfigError("Cannot find local AS value")
-
-        (_, as_str) = router_bgp_blocks.pop().parent.split('router bgp ')
-        return int(as_str)
-
     def _remap_interfaces(self) -> None:
         last_iface_idx = [-1]
         for iface in self.interfaces.values():
             self._remap_interface(iface, last_iface_idx)
 
-    def _remap_interface(self, iface: dict, last_iface_idx: list[int]) -> None:
-        iface_name = iface['Interface']['interface']
+    def _remap_interface(self, iface: Interface, last_iface_idx: list[int]) -> None:
+        iface_name = iface.name
         if '/' not in iface_name:
             return
 
-        iface_type, unit, slot, num, vlan = self._parse_iface_format(iface['Interface']['interface'])
+        iface_type, unit, slot, num, vlan = self._parse_iface_format(iface.name)
         if vlan is None:
             last_iface_idx[0] += 1
 
         # IOS XR container requires all interfaces to be "GigabitEthernet0", in unit 0, and slot 0
-        iface['Interface']['vendor_interface'] = iface['Interface']['interface']
-        iface['Interface']['interface'] = self._build_iface_name(
-            "GigabitEthernet0", 0, 0, last_iface_idx[0], vlan
-        )
+        iface.rename(self._build_iface_name("GigabitEthernet0", 0, 0, last_iface_idx[0], vlan))
 
-        self.iface_to_iface_idx[iface['Interface']['interface']] = last_iface_idx[0]
+        self.iface_to_iface_idx[iface.name] = last_iface_idx[0]
 
-        logging.debug(f"Interface `{iface['Interface']['vendor_interface']}` "
-                      f"remapped into `{iface['Interface']['interface']}`.")
+        logging.debug(f"Interface `{iface.original_name}` remapped into `{iface.name}`.")
 
-    def _on_load_complete(self) -> None:
-        for session in self.bgp_sessions.values():
+    def _set_bgp_sessions_interfaces(self) -> None:
+        for session in self.sessions.values():
             if session.iface:
-                _, _, _, num, vlan = self._parse_iface_format(session.iface)
+                _, _, _, num, _ = self._parse_iface_format(session.iface.name)
 
                 session.iface_idx = num
-                session.vlan = vlan
+                session.vlan = session.iface.vlan if isinstance(session.iface, VlanInterface) else None
 
     def get_image(self) -> str:
         return 'ios-xr/xrd-control-plane:7.9.2'
@@ -168,7 +69,7 @@ class IosXrConfiguration(VendorConfiguration):
     def apply_to_network_scenario(self, net_scenario: Lab) -> None:
         net_scenario.add_option('privileged_machines', True)
 
-        candidate_name = f"as{self.get_local_as()}"
+        candidate_name = f"as{self.local_as}"
         candidate_router = net_scenario.get_machine(candidate_name)
         candidate_router.add_meta('image', self.get_image())
         candidate_router.add_meta('ipv6', True)
@@ -221,14 +122,10 @@ class IosXrConfiguration(VendorConfiguration):
             if '/' not in iface_name:
                 continue
 
-            if iface['Interface']['vendor_interface'] == iface['Interface']['interface']:
+            if iface.original_name == iface.name:
                 continue
 
-            all_lines = re.sub(
-                rf"\b{iface['Interface']['vendor_interface']}\b",
-                iface['Interface']['interface'],
-                all_lines
-            )
+            all_lines = re.sub(rf"\b{iface.original_name}\b", iface.name, all_lines)
 
         tmp_clean_lines = []
         for line in all_lines.split("\n"):
@@ -282,7 +179,7 @@ class IosXrConfiguration(VendorConfiguration):
 
         vlan = None
         if '.' in num:
-            (num, vlan) = num.split('.')
+            num, vlan = num.split('.')
 
         return iface_type, int(unit), int(slot), int(num), int(vlan) if vlan else None
 
@@ -330,7 +227,7 @@ class IosXrConfiguration(VendorConfiguration):
         return command
 
     def command_set_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
-        iface_name = IosXrConfiguration._build_iface_name("GigabitEthernet0", 0, 0, num, None)
+        iface_name = IosxrConfiguration._build_iface_name("GigabitEthernet0", 0, 0, num, None)
         ip_str = f"ipv{ip.version}"
 
         iface_configure = [f"interface {iface_name}", f" {ip_str} address {str(ip)}", "!"]
@@ -339,7 +236,7 @@ class IosXrConfiguration(VendorConfiguration):
         return command
 
     def command_unset_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
-        iface_name = IosXrConfiguration._build_iface_name("GigabitEthernet0", 0, 0, num, None)
+        iface_name = IosxrConfiguration._build_iface_name("GigabitEthernet0", 0, 0, num, None)
         ip_str = f"ipv{ip.version}"
 
         iface_configure = [f"interface {iface_name}", f" no {ip_str} address {str(ip)}", "!"]

@@ -24,13 +24,13 @@ class JunosVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by JunosParser#localAs.
-    def visitLocalAs(self, ctx:JunosParser.LocalAsContext):
+    # Visit a parse tree produced by JunosParser#localAsEntity.
+    def visitLocalAsEntity(self, ctx:JunosParser.LocalAsEntityContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by JunosParser#interface.
-    def visitInterface(self, ctx:JunosParser.InterfaceContext):
+    # Visit a parse tree produced by JunosParser#interfaceEntity.
+    def visitInterfaceEntity(self, ctx:JunosParser.InterfaceEntityContext):
         return self.visitChildren(ctx)
 
 
@@ -64,13 +64,8 @@ class JunosVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by JunosParser#version.
-    def visitVersion(self, ctx:JunosParser.VersionContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by JunosParser#bgpConfig.
-    def visitBgpConfig(self, ctx:JunosParser.BgpConfigContext):
+    # Visit a parse tree produced by JunosParser#bgpEntity.
+    def visitBgpEntity(self, ctx:JunosParser.BgpEntityContext):
         return self.visitChildren(ctx)
 
 
@@ -104,23 +99,13 @@ class JunosVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by JunosParser#otherConfig.
-    def visitOtherConfig(self, ctx:JunosParser.OtherConfigContext):
+    # Visit a parse tree produced by JunosParser#otherEntity.
+    def visitOtherEntity(self, ctx:JunosParser.OtherEntityContext):
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by JunosParser#ipNetwork.
     def visitIpNetwork(self, ctx:JunosParser.IpNetworkContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by JunosParser#keyValuePair.
-    def visitKeyValuePair(self, ctx:JunosParser.KeyValuePairContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by JunosParser#key.
-    def visitKey(self, ctx:JunosParser.KeyContext):
         return self.visitChildren(ctx)
 
 

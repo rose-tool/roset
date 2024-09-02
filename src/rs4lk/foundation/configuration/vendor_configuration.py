@@ -6,75 +6,76 @@ from .commands_mixin import CommandsMixin
 from .configuration_applier import ConfigurationApplier
 from .vendor_format_parser import VendorFormatParser
 from ..exceptions import ConfigError
-from ...configuration.batfish.batfish_configuration import BatfishConfiguration
-from ...model.bgp_session import BgpSession
+from ...model.bgp_session import BgpSession, BgpPeering
+from ...model.interface import Interface
+from ...utils import urlsafe_hash
 
 
 class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParser, ABC):
-    __slots__ = ['_batfish_config', '_lines', 'iface_to_iface_idx']
+    __slots__ = ['name', 'path', 'interfaces', 'local_as', 'sessions', '_lines', 'iface_to_iface_idx']
 
     CONFIG_FILE_PATH: str = "/config/startup-config.cfg"
 
     def __init__(self) -> None:
-        self._batfish_config: BatfishConfiguration | None = None
+        self.name: str | None = None
+        self.path: str | None = None
+        self.interfaces: dict[str, Interface] | None = {}
+        self.local_as: int = 0
+        self.sessions: dict[int, BgpSession] | None = {}
+
         self._lines: list[str] | None = None
         self.iface_to_iface_idx: dict[str, int] = {}
 
-    @property
-    def name(self) -> str:
-        return self._batfish_config.name
-
-    @property
-    def path(self) -> str:
-        return self._batfish_config.path
-
-    @property
-    def interfaces(self) -> dict[str, dict]:
-        return self._batfish_config.get_interfaces()
-
-    @interfaces.setter
-    def interfaces(self, value: dict[str, dict]) -> None:
-        self._batfish_config.set_interfaces(value)
-
-    @property
-    def bgp_sessions(self) -> dict[int, BgpSession]:
-        return self._batfish_config.get_bgp_sessions()
-
-    @bgp_sessions.setter
-    def bgp_sessions(self, value: dict[int, BgpSession]) -> None:
-        self._batfish_config.set_bgp_sessions(value)
-
-    def load(self, batfish_config: BatfishConfiguration) -> None:
-        self._batfish_config = batfish_config
-
-        with open(self._batfish_config.path, 'r') as config_file:
+    def load(self) -> None:
+        with open(self.path, 'r') as config_file:
             self._lines = config_file.readlines()
 
         if not self._lines:
             raise ConfigError("Empty config file")
 
-        self._batfish_config.get_interfaces()
-        self._batfish_config.get_bgp_sessions()
+        self.name = urlsafe_hash(self.path)
 
-        self._init()
+        self._remap_interfaces()
+        self._filter_bgp_sessions()
         self._infer_bgp_dc_sessions()
-        self._on_load_complete()
+        self._set_bgp_sessions_interfaces()
 
     @abstractmethod
     def get_image(self) -> str:
         raise NotImplementedError("You must implement `get_image` method.")
 
     @abstractmethod
-    def _init(self) -> None:
-        raise NotImplementedError("You must implement `_init` method.")
+    def _remap_interfaces(self) -> None:
+        raise NotImplementedError("You must implement `_remap_interfaces` method.")
+
+    def _filter_bgp_sessions(self) -> None:
+        filtered_sessions = {}
+
+        for remote_as, session in self.sessions.items():
+            if not self._is_valid_session(remote_as):
+                continue
+
+            filtered_sessions[remote_as] = session
+
+        self.sessions = filtered_sessions
+
+    def _is_valid_session(self, remote_as: int) -> bool:
+        if 64000 <= remote_as <= 131071:
+            logging.warning(f"Skipping session with AS{remote_as} is in reserved range 64000-131071.")
+            return False
+        if self.local_as == remote_as:
+            logging.warning(f"Skipping session with AS{remote_as} is a iBGP peering.")
+            return False
+
+        return True
 
     def _infer_bgp_dc_sessions(self) -> None:
         logging.info("Inferring directly connected BGP sessions.")
 
-        for session in self.bgp_sessions.values():
+        for session in self.sessions.values():
             iface = None
             for peering in session.peerings:
-                iface, local_ip = self._batfish_config.get_interface_for_peering(peering)
+                iface, local_ip = self._get_interface_for_peering(peering)
                 if not iface:
                     continue
 
@@ -82,21 +83,32 @@ class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParse
 
             session.iface = iface
 
-        logging.debug(f"Resulting sessions: {self.bgp_sessions}")
+        logging.debug(f"Resulting sessions: {self.sessions}")
+
+    def _get_interface_for_peering(self, bgp_peering: BgpPeering) \
+            -> (Interface | None, ipaddress.IPv4Interface | ipaddress.IPv6Interface | None):
+        selected_iface = None
+        selected_iface_ip = None
+        last_plen = -1
+
+        # Do LPM algorithm
+        for iface in self.interfaces.values():
+            for iface_ip in iface.addresses:
+                if bgp_peering.remote_ip.version != iface_ip.network.version:
+                    continue
+
+                if bgp_peering.remote_ip in iface_ip.network and iface_ip.network.prefixlen > last_plen:
+                    selected_iface = iface
+                    selected_iface_ip = iface_ip
+                    last_plen = iface_ip.network.prefixlen
+
+        if selected_iface:
+            return selected_iface, selected_iface_ip
+
+        logging.warning(f"Cannot find interface for directly connected peering with AS{bgp_peering.session.remote_as}.")
+
+        return None, None
 
     @abstractmethod
-    def _on_load_complete(self) -> None:
-        raise NotImplementedError("You must implement `_on_load_complete` method.")
-
-    def get_local_as(self) -> int:
-        batfish_local_as = self._batfish_config.get_local_as()
-        if batfish_local_as > 0:
-            return batfish_local_as
-
-        vendor_local_as = self._get_bgp_local_as_vendor()
-        self._batfish_config.set_local_as(vendor_local_as)
-        return vendor_local_as
-
-    @abstractmethod
-    def _get_bgp_local_as_vendor(self) -> int:
-        raise NotImplementedError("You must implement `_get_bgp_local_as_vendor` method.")
+    def _set_bgp_sessions_interfaces(self) -> None:
+        raise NotImplementedError("You must implement `_set_bgp_sessions_interfaces` method.")

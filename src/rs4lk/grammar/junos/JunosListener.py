@@ -35,21 +35,21 @@ class JunosListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by JunosParser#localAs.
-    def enterLocalAs(self, ctx:JunosParser.LocalAsContext):
+    # Enter a parse tree produced by JunosParser#localAsEntity.
+    def enterLocalAsEntity(self, ctx:JunosParser.LocalAsEntityContext):
         pass
 
-    # Exit a parse tree produced by JunosParser#localAs.
-    def exitLocalAs(self, ctx:JunosParser.LocalAsContext):
+    # Exit a parse tree produced by JunosParser#localAsEntity.
+    def exitLocalAsEntity(self, ctx:JunosParser.LocalAsEntityContext):
         pass
 
 
-    # Enter a parse tree produced by JunosParser#interface.
-    def enterInterface(self, ctx:JunosParser.InterfaceContext):
+    # Enter a parse tree produced by JunosParser#interfaceEntity.
+    def enterInterfaceEntity(self, ctx:JunosParser.InterfaceEntityContext):
         pass
 
-    # Exit a parse tree produced by JunosParser#interface.
-    def exitInterface(self, ctx:JunosParser.InterfaceContext):
+    # Exit a parse tree produced by JunosParser#interfaceEntity.
+    def exitInterfaceEntity(self, ctx:JunosParser.InterfaceEntityContext):
         pass
 
 
@@ -107,21 +107,12 @@ class JunosListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by JunosParser#version.
-    def enterVersion(self, ctx:JunosParser.VersionContext):
+    # Enter a parse tree produced by JunosParser#bgpEntity.
+    def enterBgpEntity(self, ctx:JunosParser.BgpEntityContext):
         pass
 
-    # Exit a parse tree produced by JunosParser#version.
-    def exitVersion(self, ctx:JunosParser.VersionContext):
-        pass
-
-
-    # Enter a parse tree produced by JunosParser#bgpConfig.
-    def enterBgpConfig(self, ctx:JunosParser.BgpConfigContext):
-        pass
-
-    # Exit a parse tree produced by JunosParser#bgpConfig.
-    def exitBgpConfig(self, ctx:JunosParser.BgpConfigContext):
+    # Exit a parse tree produced by JunosParser#bgpEntity.
+    def exitBgpEntity(self, ctx:JunosParser.BgpEntityContext):
         pass
 
 
@@ -179,12 +170,12 @@ class JunosListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by JunosParser#otherConfig.
-    def enterOtherConfig(self, ctx:JunosParser.OtherConfigContext):
+    # Enter a parse tree produced by JunosParser#otherEntity.
+    def enterOtherEntity(self, ctx:JunosParser.OtherEntityContext):
         pass
 
-    # Exit a parse tree produced by JunosParser#otherConfig.
-    def exitOtherConfig(self, ctx:JunosParser.OtherConfigContext):
+    # Exit a parse tree produced by JunosParser#otherEntity.
+    def exitOtherEntity(self, ctx:JunosParser.OtherEntityContext):
         pass
 
 
@@ -194,24 +185,6 @@ class JunosListener(ParseTreeListener):
 
     # Exit a parse tree produced by JunosParser#ipNetwork.
     def exitIpNetwork(self, ctx:JunosParser.IpNetworkContext):
-        pass
-
-
-    # Enter a parse tree produced by JunosParser#keyValuePair.
-    def enterKeyValuePair(self, ctx:JunosParser.KeyValuePairContext):
-        pass
-
-    # Exit a parse tree produced by JunosParser#keyValuePair.
-    def exitKeyValuePair(self, ctx:JunosParser.KeyValuePairContext):
-        pass
-
-
-    # Enter a parse tree produced by JunosParser#key.
-    def enterKey(self, ctx:JunosParser.KeyContext):
-        pass
-
-    # Exit a parse tree produced by JunosParser#key.
-    def exitKey(self, ctx:JunosParser.KeyContext):
         pass
 
 

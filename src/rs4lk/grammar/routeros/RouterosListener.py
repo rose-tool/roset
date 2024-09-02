@@ -143,15 +143,6 @@ class RouterosListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by RouterosParser#interfaceName.
-    def enterInterfaceName(self, ctx:RouterosParser.InterfaceNameContext):
-        pass
-
-    # Exit a parse tree produced by RouterosParser#interfaceName.
-    def exitInterfaceName(self, ctx:RouterosParser.InterfaceNameContext):
-        pass
-
-
     # Enter a parse tree produced by RouterosParser#keyValuePair.
     def enterKeyValuePair(self, ctx:RouterosParser.KeyValuePairContext):
         pass
@@ -167,6 +158,15 @@ class RouterosListener(ParseTreeListener):
 
     # Exit a parse tree produced by RouterosParser#key.
     def exitKey(self, ctx:RouterosParser.KeyContext):
+        pass
+
+
+    # Enter a parse tree produced by RouterosParser#interfaceName.
+    def enterInterfaceName(self, ctx:RouterosParser.InterfaceNameContext):
+        pass
+
+    # Exit a parse tree produced by RouterosParser#interfaceName.
+    def exitInterfaceName(self, ctx:RouterosParser.InterfaceNameContext):
         pass
 
 
