@@ -6,162 +6,63 @@ import re
 from Kathara.model.Lab import Lab
 
 from ...foundation.configuration.vendor_configuration import VendorConfiguration
-from ...foundation.exceptions import ConfigError
-from ...model.bgp_session import BgpSession
+from ...model.interface import Interface, VlanInterface
 
 
-class VmxConfiguration(VendorConfiguration):
-    # Number of supported interfaces in vrnetlab VMX VM
-    SUPPORTED_IFACES: int = 50
+class RouterosConfiguration(VendorConfiguration):
+    # Number of supported interfaces in vrnetlab RouterOS VM
+    SUPPORTED_IFACES: int = 31
+
+    CONFIG_FILE_PATH: str = "/ftpboot/config.auto.rsc"
+    ROS_MGMT_ADDR: str = "172.31.255.30"
 
     CLI_CMD: str = ("sshpass -p VR-netlab9 ssh -q "
-                    "-oStrictHostKeyChecking=no -oConnectTimeout=1 vrnetlab@localhost \"{command}\"")
-
-    def _init(self) -> None:
-        self._parse_ipv6_interface_addresses()
-        self._parse_ipv6_sessions()
-        self._remap_interfaces()
-
-    def _parse_ipv6_interface_addresses(self) -> None:
-        logging.info("Inferring IPv6 interface addresses.")
-
-        ipv6_addrs = {}
-        for line in self._lines:
-            if 'set interfaces' in line and 'family inet6 address' in line:
-                (before_addr, addr_part) = line.split('family inet6 address ')
-                addr_parts = addr_part.strip().split(' ')
-                addr = ipaddress.IPv6Interface(addr_parts[0])
-
-                (_, iface_parts) = before_addr.split('set interfaces ')
-                iface_parts = iface_parts.split(' ')
-                iface_name = iface_parts[0].strip()
-
-                # Search for unit
-                if 'unit' in iface_parts:
-                    iface_name += '.' + iface_parts[2]
-
-                if iface_name not in ipv6_addrs:
-                    ipv6_addrs[iface_name] = set()
-
-                ipv6_addrs[iface_name].add(addr)
-
-        for iface_name, addrs in ipv6_addrs.items():
-            self.interfaces[iface_name]['All_Prefixes'].extend(addrs)
-
-        logging.debug(f"Resulting interfaces: {self.interfaces}")
-
-    def _parse_ipv6_sessions(self) -> None:
-        logging.info("Inferring IPv6 BGP sessions.")
-
-        local_as = self.get_local_as()
-
-        ipv6_bgp_sessions = {}
-        for line in self._lines:
-            if 'set protocols bgp group' in line:
-                (_, group_parts) = line.split('set protocols bgp group ')
-                group_parts = group_parts if type(group_parts) == str else group_parts[1]
-                group_parts = group_parts.split(' ')
-                group = group_parts[0].strip()
-
-                if group not in ipv6_bgp_sessions:
-                    ipv6_bgp_sessions[group] = {'group': group, 'local_as': local_as, 'is_v6': True}
-
-                if 'neighbor' in line:
-                    (before_addr, addr_part) = line.split('neighbor ')
-                    addr_parts = addr_part.strip().split(' ')
-                    try:
-                        addr = ipaddress.IPv6Address(addr_parts[0])
-                    except ipaddress.AddressValueError:
-                        ipv6_bgp_sessions[group]['is_v6'] = False
-                        continue
-
-                    ipv6_bgp_sessions[group]['remote_ip'] = addr
-                elif 'peer-as' in line:
-                    (before_peer, peer_part) = line.split('peer-as ')
-                    peer_parts = peer_part.strip().split(' ')
-                    peer = int(peer_parts[0])
-
-                    ipv6_bgp_sessions[group]['remote_as'] = peer
-                elif 'local-address' in line:
-                    (before_local_addr, local_addr_part) = line.split('local-address ')
-                    local_addr_parts = local_addr_part.strip().split(' ')
-                    try:
-                        local_addr = ipaddress.IPv6Address(local_addr_parts[0])
-                    except ipaddress.AddressValueError:
-                        ipv6_bgp_sessions[group]['is_v6'] = False
-                        continue
-
-                    ipv6_bgp_sessions[group]['local_ip'] = local_addr
-
-        # Filter out non-valid sessions
-        ipv6_bgp_sessions = filter(
-            lambda x: 'remote_as' in x and x['is_v6'] and
-                      self._batfish_config.is_valid_session(x['local_as'], x['remote_as']),
-            ipv6_bgp_sessions.values()
-        )
-
-        for session in ipv6_bgp_sessions:
-            remote_as = session['remote_as']
-
-            if remote_as not in self.bgp_sessions:
-                self.bgp_sessions[remote_as] = BgpSession(local_as, remote_as)
-
-            local_ip = session['local_ip'] if 'local_ip' in session else None
-            self.bgp_sessions[remote_as].add_peering(local_ip, session['remote_ip'], session['group'])
-
-        logging.debug(f"Resulting sessions: {self.bgp_sessions}")
-
-    def _get_bgp_local_as_vendor(self) -> int:
-        as_lines = list(filter(lambda x: 'set routing-options autonomous-system' in x, self._lines))
-        if not as_lines:
-            raise ConfigError("Cannot find local AS value")
-
-        (_, as_str) = as_lines.pop().split('set routing-options autonomous-system ')
-
-        return int(as_str)
+                    "-oStrictHostKeyChecking=no -oConnectTimeout=1 vrnetlab@" + ROS_MGMT_ADDR + " \"{command}\"")
 
     def _remap_interfaces(self) -> None:
         last_iface_idx = [0]
         for iface in self.interfaces.values():
-            self._remap_interface(iface, last_iface_idx)
+            print(iface)
+
+            # self._remap_interface(iface, last_iface_idx)
+        exit()
 
         # Fill up missing interfaces
         for idx in range(last_iface_idx[0] + 1, self.SUPPORTED_IFACES):
             name = self._build_iface_name('ge', 0, 0, idx, 0)
             self.iface_to_iface_idx[name] = idx
 
-    def _remap_interface(self, iface: dict, last_iface_idx: list[int]) -> None:
-        if '-' not in iface['Interface']['interface']:
+    def _remap_interface(self, iface: Interface, last_iface_idx: list[int]) -> None:
+        if '-' not in iface.name:
             return
 
-        iface_type, slot, port, pic, unit = self._parse_iface_format(iface['Interface']['interface'])
-        if unit is None:
+        if not isinstance(iface, VlanInterface):
             last_iface_idx[0] += 1
             unit = 0
+        else:
+            unit = iface.vlan
 
         # Put it as 'ge', in slot 0 and port 0
-        iface['Interface']['vendor_interface'] = iface['Interface']['interface']
-        iface['Interface']['interface'] = self._build_iface_name('ge', 0, 0, last_iface_idx[0], unit)
+        iface.rename(self._build_iface_name('ge', 0, 0, last_iface_idx[0], unit))
 
-        self.iface_to_iface_idx[iface['Interface']['interface']] = last_iface_idx[0]
+        self.iface_to_iface_idx[iface.name] = last_iface_idx[0]
 
-        logging.debug(f"Interface `{iface['Interface']['vendor_interface']}` "
-                      f"remapped into `{iface['Interface']['interface']}`.")
+        logging.debug(f"Interface `{iface.original_name}` remapped into `{iface.name}`.")
 
-    def _on_load_complete(self) -> None:
-        for session in self.bgp_sessions.values():
+    def _set_bgp_sessions_interfaces(self) -> None:
+        for session in self.sessions.values():
             if session.iface:
-                _, _, _, pic, unit = self._parse_iface_format(session.iface)
+                _, _, _, pic, unit = self._parse_iface_format(session.iface.name)
                 session.iface_idx = pic
-                session.vlan = unit if unit > 0 else None
+                session.vlan = session.iface.vlan if isinstance(session.iface, VlanInterface) else None
 
     def get_image(self) -> str:
-        return 'vrnetlab/vr-vmx:18.2R1.9'
+        return 'vrnetlab/vr-routeros:7.14'
 
     def apply_to_network_scenario(self, net_scenario: Lab) -> None:
         net_scenario.add_option('privileged_machines', True)
 
-        candidate_name = f"as{self.get_local_as()}"
+        candidate_name = f"as{self.local_as}"
         candidate_router = net_scenario.get_machine(candidate_name)
         candidate_router.add_meta('image', self.get_image())
 
@@ -175,12 +76,12 @@ class VmxConfiguration(VendorConfiguration):
                 continue
 
             v_iface_type, v_slot, v_port, v_pic, v_unit = self._parse_iface_format(
-                iface['Interface']['vendor_interface']
+                iface.original_name
             )
             if v_unit is None:
                 v_unit = 0
             iface_type, slot, port, pic, unit = self._parse_iface_format(
-                iface['Interface']['interface']
+                iface.name
             )
             if unit is None:
                 unit = 0
@@ -229,23 +130,7 @@ class VmxConfiguration(VendorConfiguration):
 
             clean_lines.append(line)
 
-        clean_lines = self._clean_filters_on_loopback(clean_lines)
-
         return clean_lines
-
-    @staticmethod
-    def _clean_filters_on_loopback(all_lines: list[str]) -> list[str]:
-        filter_line_idx = -1
-
-        for idx, line in enumerate(all_lines):
-            if 'set interfaces lo0' in line and 'filter input':
-                filter_line_idx = idx
-                break
-
-        if filter_line_idx != -1:
-            all_lines.pop(filter_line_idx)
-
-        return all_lines
 
     @staticmethod
     def _parse_iface_format(x) -> (str, int, int, int, int | None):
@@ -295,7 +180,7 @@ class VmxConfiguration(VendorConfiguration):
         return command
 
     def command_set_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
-        unit_name = VmxConfiguration._build_iface_name("ge", 0, 0, num, 0)
+        unit_name = RouterosConfiguration._build_iface_name("ge", 0, 0, num, 0)
         inet_str = "inet" if ip.version == 4 else "inet6"
 
         command = self.CLI_CMD.format(
@@ -305,7 +190,7 @@ class VmxConfiguration(VendorConfiguration):
         return command
 
     def command_unset_iface_ip(self, num: int, ip: ipaddress.IPv4Interface | ipaddress.IPv6Interface) -> str:
-        unit_name = VmxConfiguration._build_iface_name("ge", 0, 0, num, 0)
+        unit_name = RouterosConfiguration._build_iface_name("ge", 0, 0, num, 0)
         inet_str = "inet" if ip.version == 4 else "inet6"
 
         command = self.CLI_CMD.format(

@@ -92,6 +92,8 @@ Currently, ROSE-T supports two Vendor Routers:
         sysctl -w fs.inotify.max_user_instances=64000
         sysctl -w fs.inotify.max_user_watches=64000
       ```
+- **Microtik RouterOS** through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container.
+  - We use a custom version of the VM, which `.patch` files are located in the `vrnet_patches` folder.
 
 ## Hands-on
 
@@ -121,7 +123,7 @@ The command requires two positional parameters:
 - `<TABLE_DUMP_RIB_FILE>` is the RIB dump in `.gz` format. 
 - `<OUTPUT_FILE.db>` is the name of the output SQLite3 database (stored in the `resources` directory). By default, the name is `rib_latest.db`.
 
-## Build the Juniper VMX image (only if you plan to test Juniper)
+## Build the patched `vrnetlab` images
 
 1. Clone the [hellt/vrnetlab](https://github.com/hellt/vrnetlab) repository, you can clone it inside the root directory of ROSE-T:
 ```bash
@@ -131,10 +133,11 @@ git clone https://github.com/hellt/vrnetlab
 2. Apply the patch located in the `vrnet_patches` folder. If you cloned `vrnetlab` in the root folder of ROSE-T:
 ```bash
 cd vrnetlab
-git apply ../vrnet_patches/vmx.patch
+git apply ../vrnet_patches/<os_name>.patch
 ```
+Where `<os_name>.patch` is the name of the patch file.
 
-3. Now, to build the VMX image, copy the VM `.tar.gz` provided by Juniper inside the `vmx` folder and run `make`. The process will take few minutes.
+3. Now, to build the image, copy the VM file provided by the vendor (e.g., `.tar.gz` for Juniper, or `.vmdk` for RouterOS) inside the corresponding OS folder (e.g. `vmx`) and run `make`. The process will take few minutes.
 
 **NOTE:** For now, the container name is hardcoded into ROSE-T [here](https://github.com/Skazza94/roset/blob/51665243d054ccb9af8da91503ebc6b9716ec8c6/src/rs4lk/configuration/vendor/vmx_configuration.py#L159C35-L159C35). We plan to add a configuration parameter to specify the image name. If your image name differs, you have to manually change it.
 
