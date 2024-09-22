@@ -136,3 +136,7 @@ resources/bogons-*.txt
 snapshots/*
 
 .DS_Store
+
+resources/*.conf
+resources/*.rsc
+vrnetlab/*

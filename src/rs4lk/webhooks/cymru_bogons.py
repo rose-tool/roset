@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import os.path
 
 import requests
@@ -31,18 +32,22 @@ class CymruBogons:
             self._write_cache_file(url, cache_file)
             return
 
-        r = requests.head(url)
-        r.raise_for_status()
-        last_modified = parsedate(r.headers['last-modified'])
+        try:
+            r = requests.head(url)
+            r.raise_for_status()
+            last_modified = parsedate(r.headers['last-modified'])
 
-        with open(cache_file, 'r') as bogons_file:
-            content = bogons_file.readlines()
+            with open(cache_file, 'r') as bogons_file:
+                content = bogons_file.readlines()
 
-        date_line = content[0].split(' ')
-        file_date = int(date_line[3]) + 1
+            date_line = content[0].split(' ')
+            file_date = int(date_line[3]) + 1
 
-        if last_modified.timestamp() > file_date:
-            self._write_cache_file(url, cache_file)
+            if last_modified.timestamp() > file_date:
+                self._write_cache_file(url, cache_file)
+        except requests.exceptions.ConnectionError:
+            if not os.path.exists(cache_file):
+                logging.error('Could not download CYMRU Bogons file.')
 
     @staticmethod
     def _write_cache_file(url: str, path: str) -> None:

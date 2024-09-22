@@ -8,13 +8,13 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 def capture(src_ip: str, dst_ip: str, version: int) -> bool:
     if version == 4:
-        type = "icmp"
+        icmp_type = "icmp"
     elif version == 6:
-        type = "icmp6"
+        icmp_type = "icmp6"
     else:
         return False
 
-    pkts = sniff(filter=f"{type} and src {src_ip} and dst {dst_ip}", count=1, timeout=10)
+    pkts = sniff(filter=f"{icmp_type} and src {src_ip} and dst {dst_ip}", iface="eth0", count=1, timeout=10)
     return len(pkts) == 0
 
 
