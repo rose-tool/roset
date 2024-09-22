@@ -84,7 +84,7 @@ class NetworkScenarioManager:
 
     @staticmethod
     def start_candidate_device(net_scenario: Lab, vendor_config: VendorConfiguration) -> None:
-        candidate_device = net_scenario.machines[f"as{vendor_config.get_local_as()}"]
+        candidate_device = net_scenario.machines[f"as{vendor_config.local_as}"]
 
         logging.info(f"Starting candidate device `{candidate_device.name}`...")
         Kathara.get_instance().deploy_machine(candidate_device)
@@ -109,7 +109,7 @@ class NetworkScenarioManager:
     def start_other_devices(self, net_scenario: Lab, vendor_config: VendorConfiguration) -> None:
         logging.info("Starting all other devices...")
 
-        all_except_candidate = {x for x in net_scenario.machines.keys() if x != f"as{vendor_config.get_local_as()}"}
+        all_except_candidate = {x for x in net_scenario.machines.keys() if x != f"as{vendor_config.local_as}"}
         Kathara.get_instance().deploy_lab(net_scenario, selected_machines=all_except_candidate)
 
         not_healthy_routers = [x for x in all_except_candidate if "_client" not in x]

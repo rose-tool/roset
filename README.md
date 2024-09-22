@@ -10,7 +10,7 @@ The thesis focuses on the security of routing policies to the Internet of networ
 
 The first disclosure of ROSE-T, under another name (RS4LK), was made during an "ITNOG on the road" meeting on April 19, 2023 in Pisa, Italy. The [slides](https://www.prado.it/wp-content/uploads/Routing-Security-for-lazy-kids.pdf) show an initial outline of the work in collaboration with researcher [Mariano Scazzariello](https://github.com/Skazza94). After months of effort, scholar [Tommaso Caiazzi](https://github.com/tcaiazzi) also joined the project, and today it has resulted in a software product based on a method that places logical formalism alongside emulation tools.
 
-It allows to ensure that a certain router configuration is MANRS-compliant to the [Network Operator Guidelines](https://www.manrs.org/netops/).
+ROSE-T allows to ensure that a certain router configuration is MANRS-compliant to the [Network Operator Guidelines](https://www.manrs.org/netops/).
 
 Specifically, ROSE-T performs the check for validating the following actions of MANRS:
 - Action 1: **Filtering** -> Prevent propagation of incorrect routing information.
@@ -19,9 +19,7 @@ Specifically, ROSE-T performs the check for validating the following actions of 
 
 Action 3 cannot be validated automatically since it implies to verify contact information of the candidate.  
 
-It leverages:
-* __[Batfish](https://github.com/batfish/batfish)__ to parse and abstract the vendor configuration.
-* __[Kathará](https://github.com/KatharaFramework/Kathara)__ to emulate a virtual network scenario in which the router **realistically interacts** with providers and customers.
+It leverages __[Kathará](https://github.com/KatharaFramework/Kathara)__ to emulate a virtual network scenario in which the router **realistically interacts** with providers and customers.
 
 **WARNING**: The current version is still for demonstration purposes, and it is not intended to be used in production.
 
@@ -43,9 +41,8 @@ To do so, ROSE-T verifies:
 2. That the networks in the IRR Entry are announced to transits.
 
 ### Step 2: Parse the Configuration
-In this step, ROSE-T: 
-1. Exploits Batfish to parse the vendor configurations. 
-2. Enriches the information from Batfish with missing information (e.g., IPv6).
+In this step, ROSE-T parses the required information from the vendor configuration (using a custom parser).
+Mainly, it extracts interfaces' information (names and IP addresses) and BGP sessions.
 
 ### Step 3: Analyze the Configuration
 In this step ROSE-T analyzes the parsed configuration to reconstruct the neighbours relationships. 
@@ -82,16 +79,22 @@ For each provider:
 </p>
   
 ## Supported Vendor Routers
-Currently, ROSE-T supports two Vendor Routers:
-- **Juniper VMX** through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container. 
+Currently, ROSE-T supports the following vendor routers:
+- **Juniper VMX** (>=18.2) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container. 
   - We use a custom version of the VM, which `.patch` files are located in the `vrnet_patches` folder.
-- **Cisco IOS XR** using the official [XRd Control Plane](https://software.cisco.com/download/home/286331236/type/280805694) Docker image.
+  - **Note**: Currently, we only support __flat__ configurations.
+- **Cisco IOS XR** (>=7.9.2) using the official [XRd Control Plane](https://software.cisco.com/download/home/286331236/type/280805694) Docker image.
   - You need to properly configure the host machine before running the XRd container. See [this tutorial](https://xrdocs.io/virtual-routing/tutorials/2022-08-22-setting-up-host-environment-to-run-xrd/) for more information.
     - Particularly, you have to increase the `fs.inotify.max_user_instances` and `fs.inotify.max_user_watches` to at least `64000`:
       ```bash
         sysctl -w fs.inotify.max_user_instances=64000
         sysctl -w fs.inotify.max_user_watches=64000
       ```
+- **MikroTik RouterOS** (>=7.15) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container.
+  - We use a custom version of the VM, which `.patch` files are located in the `vrnet_patches` folder.
+  - **Note**: Currently, we only support  __non-terse__ configurations (i.e., do not `export` with the `terse` parameter).
+
+We plan to extend the support to additional vendors in the future.
 
 ## Hands-on
 
@@ -101,17 +104,12 @@ Currently, ROSE-T supports two Vendor Routers:
 
 ### Pre-Requisites
 
-1. Run the Batfish container:
-```
-docker run --name batfish -v batfish-data:/data -p 8888:8888 -p 9997:9997 -p 9996:9996 batfish/allinone
-```
-
-2. Download the requisites:
+1. Download the requisites:
 ```
 python3 -m pip install -r src/requirements.txt
 ```
 
-3. You need an updated a MRT RIB dump downloaded from a Route Collector, for example you can download the latest dump from [RRC00](https://data.ris.ripe.net/rrc00/).
+2. You need an updated a MRT RIB dump downloaded from a Route Collector, for example you can download the latest dump from [RRC00](https://data.ris.ripe.net/rrc00/).
 Now, enter the `resources` directory, and run the `load_mrt.py` script:
 ```
 cd resources
@@ -121,22 +119,22 @@ The command requires two positional parameters:
 - `<TABLE_DUMP_RIB_FILE>` is the RIB dump in `.gz` format. 
 - `<OUTPUT_FILE.db>` is the name of the output SQLite3 database (stored in the `resources` directory). By default, the name is `rib_latest.db`.
 
-## Build the Juniper VMX image (only if you plan to test Juniper)
+## Build the patched `vrnetlab` images
 
 1. Clone the [hellt/vrnetlab](https://github.com/hellt/vrnetlab) repository, you can clone it inside the root directory of ROSE-T:
 ```bash
 git clone https://github.com/hellt/vrnetlab
 ```
 
-2. Apply the patch located in the `vrnet_patches` folder. If you cloned `vrnetlab` in the root folder of ROSE-T:
+2. Apply the patches located in the `vrnet_patches` folder. If you cloned `vrnetlab` in the root folder of ROSE-T:
 ```bash
 cd vrnetlab
-git apply ../vrnet_patches/vmx.patch
+git apply ../vrnet_patches/vrnet.patch
+git apply ../vrnet_patches/<os_name>.patch
 ```
+Where `<os_name>.patch` is the name of the patch file.
 
-3. Now, to build the VMX image, copy the VM `.tar.gz` provided by Juniper inside the `vmx` folder and run `make`. The process will take few minutes.
-
-**NOTE:** For now, the container name is hardcoded into ROSE-T [here](https://github.com/Skazza94/roset/blob/51665243d054ccb9af8da91503ebc6b9716ec8c6/src/rs4lk/configuration/vendor/vmx_configuration.py#L159C35-L159C35). We plan to add a configuration parameter to specify the image name. If your image name differs, you have to manually change it.
+3. Now, to build the image, copy the VM file provided by the vendor (e.g., `.tar.gz` for Juniper, or `.vmdk` for RouterOS) inside the corresponding OS folder (e.g. `vmx`) and run `make`. The process will take few minutes.
 
 ## Run a Test
 
@@ -144,12 +142,12 @@ git apply ../vrnet_patches/vmx.patch
 To run the verification of Action 1 and 2, the simplest command is:
 ```
 cd src
-python3 test.py --config_path <CONFIGURATION_PATH>
+sudo -E PATH=$PATH python3 test.py --config_path <CONFIGURATION_PATH> --config_syntax <CONFIGURATION_SYNTAX>
 ```
 
 The supported parameters are:
-- `--batfish_url`: The URL for the Batfish API endpoint. If you run the Docker container, the default value is `localhost`.
 - `--config_path`: Path to the configuration to test.
+- `--config_syntax`: The syntax of the provided configuration. Supported values are `Junos` (for VMX), `IosXr` (for Cisco IOS XR), `Routeros` (for MikroTik RouterOS).
 - `--rib_dump`: Path pointing to the `.db` SQLite3 database containing the parsed MRT RIB dump. By default, the value is `resources/rib_latest.db`.
 - `--exclude_checks`: A comma separated string to exclude some MANRS checks. Supported values are `spoofing` and `leak`.
 - `--result-level`: The output of the validation will report both successful checks, warnings and errors. You can change the level of output with this parameters. Supported values are `WARNING`, `SUCCESS`, and `ERROR`.
@@ -162,3 +160,24 @@ The test can take up to few minutes, depending on your hardware. Ensure that you
 Currently, the Action 4 verification is a standalone Prolog program. We plan to merge the two tools in the near future.
 
 To verify Action 4, enter the `src_prolog` directory and follow the related [README](src_prolog/README.md) file.
+
+## Customizations 
+
+### Build the ANTLR4 grammar
+
+ANTLR4 grammars are already compiled and embedded into ROSE-T. 
+We provide the `.g4` of the grammars in the `grammars` folder if you wish to update or improve it. 
+
+To re-compile the new grammar and move the compiled Python result into ROSE-T, you can use the `Makefile` located in the `grammars` folder:
+```bash
+make grammar_<os_name>
+```
+
+Where `<os_name>` corresponds to the name of the associated grammar file without extension: `IosXr`, `Junos`, or `Routeros`.
+
+### Change the vendor router Docker image name
+
+**NOTE:** For now, the container name is hardcoded into ROSE-T. 
+We plan to add a configuration parameter to specify the image name.
+If your image name differs, you have to manually change it into the corresponding `src/rs4lk/configuration/vendor/<os_name>_configuration.py` file, by modifying the `get_image` method of the class.
+

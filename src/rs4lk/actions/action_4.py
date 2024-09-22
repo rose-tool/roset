@@ -19,7 +19,7 @@ class Action4(Action):
     def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> ActionResult:
         action_result = ActionResult(self)
 
-        candidate = topology.get(config.get_local_as())
+        candidate = topology.get(config.local_as)
         candidate_device = net_scenario.get_machine(candidate.name)
 
         all_announced_networks = {4: set(), 6: set()}

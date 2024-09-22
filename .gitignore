@@ -133,6 +133,10 @@ dmypy.json
 resources/*.gz
 resources/*.db
 resources/bogons-*.txt
-snapshots/*.cfg
+snapshots/*
 
 .DS_Store
+
+resources/*.conf
+resources/*.rsc
+vrnetlab/*

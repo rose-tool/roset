@@ -5,6 +5,7 @@ from collections import OrderedDict
 from typing import Any
 
 from sortedcontainers import SortedDict
+from sortedcontainers import SortedSet
 
 from .. import utils
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
@@ -219,11 +220,11 @@ class Topology:
         self._infer_bgp_relationships()
 
         # First, add the candidate router
-        candidate_local_as = self._vendor_config.get_local_as()
+        candidate_local_as = self._vendor_config.local_as
         candidate_router = BgpRouter(candidate_local_as, None)
         candidate_router.candidate = True
         # Layout all the declared interfaces inside the device
-        for iface_idx in set(self._vendor_config.iface_to_iface_idx.values()):
+        for iface_idx in SortedSet(self._vendor_config.iface_to_iface_idx.values()):
             cd = CollisionDomain.get_instance().get(
                 str(candidate_local_as),
                 f"as{candidate_local_as}_{iface_idx}"
@@ -232,7 +233,7 @@ class Topology:
         self._nodes[candidate_local_as] = candidate_router
 
         # First, directly connected ones
-        for as_num, session in self._vendor_config.bgp_sessions.items():
+        for as_num, session in self._vendor_config.sessions.items():
             if session.iface:
                 neighbour_router = BgpRouter(as_num, session.relationship)
                 self._nodes[as_num] = neighbour_router
@@ -263,7 +264,7 @@ class Topology:
             cd = CollisionDomain.get_instance().get(str(candidate_local_as), f"dummy_net_{i}")
             candidate_router.connect_interface_to_cd(cd, i)
 
-        # Get all providers
+        # Get all DC providers
         providers_routers = list(filter(lambda x: x.is_provider(), self._nodes.values()))
         providers_ases = set(map(lambda x: x.identifier, providers_routers))
 
@@ -272,7 +273,7 @@ class Topology:
         peering_networks_v6 = ipaddress.ip_network("fc00::/7").subnets(new_prefix=120)
 
         # Get sessions without interface (multihop peerings)
-        for as_num, session in self._vendor_config.bgp_sessions.items():
+        for as_num, session in self._vendor_config.sessions.items():
             if not session.iface:
                 # Put them as customers (2) of the providers
                 neighbour_router = BgpRouter(as_num, 2)
@@ -404,12 +405,12 @@ class Topology:
     def _infer_bgp_relationships(self) -> None:
         logging.info("Inferring BGP relationships...")
 
-        (import_rules, _) = self._ripe_api.get_local_as_rules(self._vendor_config.get_local_as())
+        (import_rules, _) = self._ripe_api.get_local_as_rules(self._vendor_config.local_as)
 
         # Remove 'afi XXYY' if it is a mp-import
         import_rules = set([" ".join(x.split(' ')[2:]) if 'afi' in x else x for x in import_rules])
 
-        for remote_as_num, session in self._vendor_config.bgp_sessions.items():
+        for remote_as_num, session in self._vendor_config.sessions.items():
             found = False
             rule_pattern = f"from AS{remote_as_num}"
             for rule in import_rules:
@@ -430,7 +431,7 @@ class Topology:
                 logging.warning(f"Cannot find relationship {rule_pattern}, putting it as peer (0).")
                 session.relationship = 0
 
-        logging.debug(f"Resulting sessions: {self._vendor_config.bgp_sessions}")
+        logging.debug(f"Resulting sessions: {self._vendor_config.sessions}")
 
     def _get_connected_providers_by_as_num(self, providers_ases: set[int], as_num: int) -> list[Node]:
         as_providers = self._get_providers_of_as(as_num)

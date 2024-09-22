@@ -6,7 +6,8 @@ from ..exceptions import ClassNotFoundError
 
 def class_for_name(module_name: str, class_name: str) -> Any:
     m = importlib.import_module(module_name + "." + class_name)
-    camel_case_class_name = "".join(map(lambda x: x.capitalize(), class_name.split('_')))
+    camel_case_class_name = "".join(map(lambda x: x.capitalize(), class_name.split('_'))) \
+        if '_' in class_name else class_name
     return getattr(m, camel_case_class_name)
 
 

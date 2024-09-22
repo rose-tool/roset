@@ -1,0 +1,18 @@
+diff --git a/routeros/docker/Dockerfile b/routeros/docker/Dockerfile
+index 72da4f0..01343fb 100644
+--- a/routeros/docker/Dockerfile
++++ b/routeros/docker/Dockerfile
+@@ -13,6 +13,7 @@ RUN apt-get update -qy \
+    qemu-kvm \
+    tcpdump \
+    ssh \
++   sshpass \
+    inetutils-ping \
+    dnsutils \
+    iptables \
+@@ -27,4 +28,4 @@ COPY *.py /
+ 
+ EXPOSE 22 161/udp 830 5000 5678 8291 10000-10099
+ HEALTHCHECK CMD ["/healthcheck.py"]
+-ENTRYPOINT ["/launch.py"]
++ENTRYPOINT ["/launch.py", "--connection-mode=tc"]

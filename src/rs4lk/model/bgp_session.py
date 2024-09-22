@@ -1,5 +1,7 @@
 import ipaddress
 
+from .interface import Interface
+
 
 class BgpSession:
     __slots__ = ['local_as', 'remote_as', 'peerings', 'relationship', 'iface', 'iface_idx', 'vlan']
@@ -11,7 +13,7 @@ class BgpSession:
 
         self.relationship: int = 2
 
-        self.iface: str | None = None
+        self.iface: Interface | None = None
         self.iface_idx: int = -1
         self.vlan: int | None = None
 
@@ -29,8 +31,8 @@ class BgpSession:
 
     def __repr__(self) -> str:
         return f"({self.local_as}=>{self.remote_as} (relationship={self.relationship}) " + \
-            f"on iface={self.iface} (idx={self.iface_idx}" + (f".{self.vlan}" if self.vlan else "") + \
-            f") with peerings={self.peerings})"
+            f"on iface=" + (self.iface.name if self.iface else "None") + f" (idx={self.iface_idx}" + \
+            (f".{self.vlan}" if self.vlan else "") + f") with peerings={self.peerings})"
 
 
 class BgpPeering:
