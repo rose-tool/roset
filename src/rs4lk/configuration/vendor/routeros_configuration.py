@@ -61,8 +61,9 @@ class RouterosConfiguration(VendorConfiguration):
 
         candidate_name = f"as{self.local_as}"
         candidate_router = net_scenario.get_machine(candidate_name)
-        candidate_router.add_meta('env', f"CLAB_INTFS={self.SUPPORTED_IFACES - 1}")
         candidate_router.add_meta('image', self.get_image())
+        # Allocate slots for the interfaces
+        candidate_router.add_meta('env', f"CLAB_INTFS={self.SUPPORTED_IFACES - 1}")
 
         all_lines = "\n".join(self.get_lines())
         candidate_router.create_file_from_string(all_lines, self.CONFIG_FILE_PATH)
