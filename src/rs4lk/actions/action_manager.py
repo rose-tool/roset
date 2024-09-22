@@ -43,9 +43,6 @@ class ActionManager:
             logging.info(f"Starting `{action.display_name()}` verification...")
             action_result = action.verify(config, topology, net_scenario)
             results.append(action_result)
-            if not action_result.passed():
-                logging.error(f"`{action.display_name()}` not passed!")
-                return results
 
         return results
 

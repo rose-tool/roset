@@ -375,7 +375,7 @@ class Action3(Action):
                                 candidate_ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
                                 spoof_ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
                                 dst_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-        logging.info(f"Performing spoof check with IPs=({candidate_ip}, {spoof_ip}, {dst_ip})...")
+        logging.info(f"Performing spoof check with IPs=(src={candidate_ip}, spoof={spoof_ip}, dst={dst_ip})...")
 
         v = candidate_ip.version
 
