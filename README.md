@@ -23,9 +23,13 @@ It leverages __[Kathará](https://github.com/KatharaFramework/Kathara)__ to emul
 
 **WARNING**: The current version is still for demonstration purposes, and it is not intended to be used in production.
 
-## ROSE-T at RIPE
-Mariano Scazzariello presented ROSE-T at RIPE87 in Rome (12/01/2023):
-- Presentation and Slides: https://ripe87.ripe.net/archives/video/1262/
+## ROSE-T Presentations
+- Mariano Scazzariello presented ROSE-T at RIPE87 in Rome (December 1st 2024):
+  - Presentation and Slides: https://ripe87.ripe.net/archives/video/1262/
+- The ROSE-T team presented the tool in one of the "Between 0x2 Nerds" podcast episodes, hosted by Jeff Tantsura and Jeff Doyle:
+  - YouTube podcast episode: https://www.youtube.com/watch?v=DLpz0mpRWCM
+- Tommaso Caiazzi presented ROSE-T at Fiber Telecom Wholesale Winery Tour 2024 (March 21st 2024)
+  - Slides: https://www.wholesaletours.it/2024/wwt/speakers/caiazzi.html
 
 ## How does it work?
 
