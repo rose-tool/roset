@@ -5,7 +5,7 @@ import re
 from Kathara.model.Lab import Lab
 
 from ...foundation.configuration.vendor_configuration import VendorConfiguration
-from ...model.interface import Interface, VlanInterface
+from ...model.interface import Interface
 
 
 class IosxrConfiguration(VendorConfiguration):
@@ -54,14 +54,6 @@ class IosxrConfiguration(VendorConfiguration):
         self.iface_to_iface_idx[iface.name] = last_iface_idx[0]
 
         logging.debug(f"Interface `{iface.original_name}` remapped into `{iface.name}`.")
-
-    def _set_bgp_sessions_interfaces(self) -> None:
-        for session in self.sessions.values():
-            if session.iface:
-                _, _, _, num, _ = self._parse_iface_format(session.iface.name)
-
-                session.iface_idx = num
-                session.vlan = session.iface.vlan if isinstance(session.iface, VlanInterface) else None
 
     def get_image(self) -> str:
         return 'ios-xr/xrd-control-plane:7.9.2'
@@ -249,7 +241,7 @@ class IosxrConfiguration(VendorConfiguration):
         return result.strip() != ""
 
     def check_file_existence(self, result: str) -> bool:
-        return "No such file or directory" not in result
+        return "no such file or directory" not in result.lower()
 
     def check_configuration_validity(self, result: str) -> bool:
         # Remove empty lines and remove first line which is the command executed

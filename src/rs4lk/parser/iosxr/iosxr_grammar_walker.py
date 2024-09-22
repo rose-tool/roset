@@ -4,16 +4,17 @@ from ...foundation.parser.grammar_walker import GrammarWalker
 from ...grammar.iosxr.IosXrListener import IosXrListener
 from ...grammar.iosxr.IosXrParser import IosXrParser
 from ...model.bgp_session import BgpSession
-from ...model.interface import VlanInterface, Interface
+from ...model.interface import Interface, VlanInterface
 
 
 class IosxrGrammarWalker(IosXrListener, GrammarWalker):
-    __slots__ = ['_bgp_groups']
+    __slots__ = ['_bgp_groups', '_vlan_interfaces']
 
     def __init__(self) -> None:
         super().__init__()
 
         self._bgp_groups = {}
+        self._vlan_interfaces: dict[str, dict] = {}
 
     def enterInterfaceSection(self, ctx: IosXrParser.InterfaceSectionContext) -> None:
         if_name = ctx.interfaceName().getText()
@@ -53,13 +54,19 @@ class IosxrGrammarWalker(IosXrListener, GrammarWalker):
             if if_name not in self._configuration.interfaces:
                 if vlan_id is not None:
                     (phy, _) = if_name.split('.')
-                    self._configuration.interfaces[if_name] = VlanInterface(if_name, phy, vlan_id)
+                    self._vlan_interfaces[if_name] = {'name': if_name, 'phy': phy, 'vlan': vlan_id, 'addr': []}
                 else:
                     self._configuration.interfaces[if_name] = Interface(if_name)
             for address in addresses:
-                self._configuration.interfaces[if_name].add_address(address)
+                if vlan_id is not None:
+                    self._vlan_interfaces[if_name]['addr'].append(address)
+                else:
+                    ip_address = ipaddress.ip_interface(address)
+                    self._configuration.interfaces[if_name].add_address(ip_address)
         else:
-            if if_name in self._configuration.interfaces:
+            if if_name in self._vlan_interfaces:
+                del self._vlan_interfaces[if_name]
+            elif if_name in self._configuration.interfaces:
                 del self._configuration.interfaces[if_name]
 
     def enterBgpSection(self, ctx: IosXrParser.BgpSectionContext) -> None:
@@ -121,3 +128,14 @@ class IosxrGrammarWalker(IosXrListener, GrammarWalker):
                 self._configuration.sessions[group['remote_as']].add_peering(local_address, neighbor)
 
         self._bgp_groups.clear()
+
+        for vlan_iface in self._vlan_interfaces.values():
+            self._configuration.interfaces[vlan_iface['name']] = VlanInterface(
+                vlan_iface['name'], self._configuration.interfaces[vlan_iface['phy']], vlan_iface['vlan']
+            )
+
+            for addr in vlan_iface['addr']:
+                ip_address = ipaddress.ip_interface(addr)
+                self._configuration.interfaces[vlan_iface['name']].add_address(ip_address)
+
+        self._vlan_interfaces.clear()

@@ -29,9 +29,6 @@ def main(args):
     grammar_parser = GrammarParser()
     vendor_config = grammar_parser.parse(args.config_path, args.config_syntax)
 
-    print(vendor_config.sessions)
-    exit()
-
     rib_dump_file = os.path.abspath(args.rib_dump)
     table_dump = TableDump(rib_dump_file)
     topology = Topology(vendor_config, table_dump)

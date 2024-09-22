@@ -2,12 +2,14 @@ import ipaddress
 import logging
 from abc import ABC, abstractmethod
 
+from sortedcontainers import SortedDict
+
 from .commands_mixin import CommandsMixin
 from .configuration_applier import ConfigurationApplier
 from .vendor_format_parser import VendorFormatParser
 from ..exceptions import ConfigError
 from ...model.bgp_session import BgpSession, BgpPeering
-from ...model.interface import Interface
+from ...model.interface import Interface, VlanInterface
 from ...utils import urlsafe_hash
 
 
@@ -24,7 +26,7 @@ class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParse
         self.sessions: dict[int, BgpSession] | None = {}
 
         self._lines: list[str] | None = None
-        self.iface_to_iface_idx: dict[str, int] = {}
+        self.iface_to_iface_idx: SortedDict[str, int] = SortedDict({})
 
     def load(self) -> None:
         with open(self.path, 'r') as config_file:
@@ -109,6 +111,10 @@ class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParse
 
         return None, None
 
-    @abstractmethod
     def _set_bgp_sessions_interfaces(self) -> None:
-        raise NotImplementedError("You must implement `_set_bgp_sessions_interfaces` method.")
+        for session in self.sessions.values():
+            if session.iface:
+                session_interface = session.iface.phy.name \
+                    if isinstance(session.iface, VlanInterface) else session.iface.name
+                session.iface_idx = self.iface_to_iface_idx[session_interface]
+                session.vlan = session.iface.vlan if isinstance(session.iface, VlanInterface) else None

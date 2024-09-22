@@ -31,8 +31,8 @@ class BgpSession:
 
     def __repr__(self) -> str:
         return f"({self.local_as}=>{self.remote_as} (relationship={self.relationship}) " + \
-            f"on iface={self.iface.name} (idx={self.iface_idx}" + (f".{self.vlan}" if self.vlan else "") + \
-            f") with peerings={self.peerings})"
+            f"on iface=" + (self.iface.name if self.iface else "None") + f" (idx={self.iface_idx}" + \
+            (f".{self.vlan}" if self.vlan else "") + f") with peerings={self.peerings})"
 
 
 class BgpPeering:

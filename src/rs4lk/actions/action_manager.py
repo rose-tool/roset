@@ -51,7 +51,7 @@ class ActionManager:
 
     @staticmethod
     def _check_configuration_validity(config: VendorConfiguration, net_scenario: Lab) -> None:
-        candidate_device = net_scenario.get_machine(f"as{config.get_local_as()}")
+        candidate_device = net_scenario.get_machine(f"as{config.local_as}")
 
         # Check until the file is copied
         found = False

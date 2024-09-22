@@ -1,3 +1,5 @@
+import ipaddress
+
 from ...foundation.parser.grammar_walker import GrammarWalker
 from ...grammar.junos.JunosListener import JunosListener
 from ...grammar.junos.JunosParser import JunosParser
@@ -6,30 +8,36 @@ from ...model.interface import Interface, VlanInterface
 
 
 class JunosGrammarWalker(JunosListener, GrammarWalker):
-    __slots__ = ['_bgp_groups']
+    __slots__ = ['_bgp_groups', '_vlan_interfaces']
 
     def __init__(self) -> None:
         super().__init__()
 
-        self._bgp_groups = {}
+        self._bgp_groups: dict[str, dict] = {}
+        self._vlan_interfaces: dict[str, dict] = {}
 
     def enterInterfaceEntity(self, ctx: JunosParser.InterfaceEntityContext) -> None:
         if_name = ctx.interfaceName().getText()
         if if_name not in self._configuration.interfaces:
             self._configuration.interfaces[if_name] = Interface(if_name)
 
+    def enterVlanId(self, ctx: JunosParser.VlanIdContext) -> None:
+        if_name = ctx.parentCtx.interfaceName().WORD().getText()
+        unit = int(ctx.unit().WORD().getText())
+
+        standard_name = f"{if_name}.{unit}"
+        self._vlan_interfaces[standard_name] = {'name': standard_name, 'phy': if_name, 'vlan': unit, 'addr': []}
+
     def enterInterfaceIp(self, ctx: JunosParser.InterfaceIpContext) -> None:
         unit = int(ctx.unit().WORD().getText())
         if_name = ctx.parentCtx.interfaceName().WORD().getText()
-        if unit == 0:
-            self._configuration.interfaces[if_name].add_address(ctx.ipNetwork().getText())
-        else:
-            iface_name = f"{if_name}.{unit}"
-            if iface_name not in self._configuration.interfaces:
-                self._configuration.interfaces[iface_name] = VlanInterface(iface_name, if_name, unit)
+        address = ipaddress.ip_interface(ctx.ipNetwork().getText())
 
-            address = ctx.ipNetwork().getText()
-            self._configuration.interfaces[iface_name].add_address(address)
+        if unit == 0:
+            self._configuration.interfaces[if_name].add_address(address)
+        else:
+            standard_name = f"{if_name}.{unit}"
+            self._vlan_interfaces[standard_name]['addr'].append(address)
 
     def enterLocalAsEntity(self, ctx: JunosParser.LocalAsEntityContext) -> None:
         self._configuration.local_as = int(ctx.WORD().getText())
@@ -64,3 +72,13 @@ class JunosGrammarWalker(JunosListener, GrammarWalker):
                 )
 
         self._bgp_groups.clear()
+
+        for vlan_iface in self._vlan_interfaces.values():
+            self._configuration.interfaces[vlan_iface['name']] = VlanInterface(
+                vlan_iface['name'], self._configuration.interfaces[vlan_iface['phy']], vlan_iface['vlan']
+            )
+
+            for addr in vlan_iface['addr']:
+                self._configuration.interfaces[vlan_iface['name']].add_address(addr)
+
+        self._vlan_interfaces.clear()

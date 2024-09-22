@@ -5,6 +5,7 @@ from collections import OrderedDict
 from typing import Any
 
 from sortedcontainers import SortedDict
+from sortedcontainers import SortedSet
 
 from .. import utils
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
@@ -223,7 +224,7 @@ class Topology:
         candidate_router = BgpRouter(candidate_local_as, None)
         candidate_router.candidate = True
         # Layout all the declared interfaces inside the device
-        for iface_idx in set(self._vendor_config.iface_to_iface_idx.values()):
+        for iface_idx in SortedSet(self._vendor_config.iface_to_iface_idx.values()):
             cd = CollisionDomain.get_instance().get(
                 str(candidate_local_as),
                 f"as{candidate_local_as}_{iface_idx}"

@@ -24,13 +24,13 @@ class Action3(Action):
     def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> ActionResult:
         action_result = ActionResult(self)
 
-        candidate = topology.get(config.get_local_as())
+        candidate = topology.get(config.local_as)
         candidate_client_name = f"as{candidate.identifier}_client"
         _, candidate_client_iface_idx = candidate.get_node_by_name(candidate_client_name)
         candidate_device = net_scenario.get_machine(candidate.name)
         candidate_client = net_scenario.get_machine(candidate_client_name)
         candidate_assigned_ips = set(
-            itertools.chain.from_iterable(map(lambda x: x['All_Prefixes'], config.interfaces.values()))
+            itertools.chain.from_iterable(map(lambda x: x.addresses, config.interfaces.values()))
         )
 
         logging.info(f"Copying spoofing check script into candidate client `{candidate_client_name}`...")

@@ -19,22 +19,26 @@ class JunosConfiguration(VendorConfiguration):
     def _remap_interfaces(self) -> None:
         last_iface_idx = [0]
         for iface in self.interfaces.values():
-            self._remap_interface(iface, last_iface_idx)
+            if not isinstance(iface, VlanInterface):
+                self._remap_interface(iface, last_iface_idx)
 
         # Fill up missing interfaces
         for idx in range(last_iface_idx[0] + 1, self.SUPPORTED_IFACES):
             name = self._build_iface_name('ge', 0, 0, idx, 0)
             self.iface_to_iface_idx[name] = idx
 
+        for iface in self.interfaces.values():
+            if isinstance(iface, VlanInterface):
+                phy_idx = self.iface_to_iface_idx[iface.phy.name]
+                iface.rename(self._build_iface_name('ge', 0, 0, phy_idx, iface.vlan))
+                self.iface_to_iface_idx[iface.name] = phy_idx
+
     def _remap_interface(self, iface: Interface, last_iface_idx: list[int]) -> None:
         if '-' not in iface.name:
             return
 
-        if not isinstance(iface, VlanInterface):
-            last_iface_idx[0] += 1
-            unit = 0
-        else:
-            unit = iface.vlan
+        last_iface_idx[0] += 1
+        unit = 0
 
         # Put it as 'ge', in slot 0 and port 0
         iface.rename(self._build_iface_name('ge', 0, 0, last_iface_idx[0], unit))
@@ -42,13 +46,6 @@ class JunosConfiguration(VendorConfiguration):
         self.iface_to_iface_idx[iface.name] = last_iface_idx[0]
 
         logging.debug(f"Interface `{iface.original_name}` remapped into `{iface.name}`.")
-
-    def _set_bgp_sessions_interfaces(self) -> None:
-        for session in self.sessions.values():
-            if session.iface:
-                _, _, _, pic, _ = self._parse_iface_format(session.iface.name)
-                session.iface_idx = pic
-                session.vlan = session.iface.vlan if isinstance(session.iface, VlanInterface) else None
 
     def get_image(self) -> str:
         return 'vrnetlab/vr-vmx:18.2R1.9'
@@ -215,10 +212,10 @@ class JunosConfiguration(VendorConfiguration):
         return result.strip() != ""
 
     def check_file_existence(self, result: str) -> bool:
-        return "No such file or directory" not in result
+        return "no such file or directory" not in result.lower()
 
     def check_configuration_validity(self, result: str) -> bool:
-        return "configuration check succeeds" in result
+        return "configuration check succeeds" in result.lower()
 
     def check_bgp_state(self, result: str) -> bool:
         output = json.loads(result)

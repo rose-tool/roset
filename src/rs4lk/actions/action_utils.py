@@ -102,7 +102,8 @@ def _is_vendor_neighbour_bgp_up(device: Machine, neighbour_ip: ipaddress.IPv4Add
     return config.check_bgp_state(output)
 
 
-def _is_neighbour_bgp_up(device: Machine, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+def _is_neighbour_bgp_up(device: Machine, neighbour_ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
+                         config: VendorConfiguration) -> bool:
     command = f"vtysh -c 'show bgp ipv{neighbour_ip.version} neighbors {neighbour_ip} json'"
 
     exec_output = Kathara.get_instance().exec(
