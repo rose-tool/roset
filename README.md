@@ -90,7 +90,7 @@ Currently, ROSE-T supports the following vendor routers:
         sysctl -w fs.inotify.max_user_instances=64000
         sysctl -w fs.inotify.max_user_watches=64000
       ```
-- **MikroTik RouterOS** (>=7.15) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container.
+- **MikroTik RouterOS** (>=7.16) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container.
   - We use a custom version of the VM, which `.patch` files are located in the `vrnet_patches` folder.
   - **Note**: Currently, we only support  __non-terse__ configurations (i.e., do not `export` with the `terse` parameter).
 
